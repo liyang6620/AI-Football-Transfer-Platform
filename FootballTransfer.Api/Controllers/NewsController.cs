@@ -1,29 +1,36 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FootballTransfer.Api.Data;
 using FootballTransfer.Api.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace FootballTransfer.Api.Controllers
+namespace FootballTransfer.Api.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class NewsController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class NewsController : ControllerBase
-    {
-        [HttpGet]
-        public IActionResult Get()
-        {
-            var news = new List<TransferNews>
-            {
-                new TransferNews
-                {
-                    Id = 1,
-                    Title = "Liverpool interested in Florian Wirtz",
-                    Content = "Liverpool are monitoring Florian Wirtz.",
-                    Source = "BBC Sport",
-                    Url = "https://bbc.com",
-                    PublishedAt = DateTime.UtcNow
-                }
-            };
+    private readonly FootballTransferDbContext _context;
 
-            return Ok(news);
-        }
+    public NewsController(FootballTransferDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Get()
+    {
+        var news = await _context.TransferNews.ToListAsync();
+
+        return Ok(news);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(TransferNews news)
+    {
+        _context.TransferNews.Add(news);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(news);
     }
 }

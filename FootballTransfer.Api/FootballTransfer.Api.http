@@ -1,6 +1,17 @@
-@FootballTransfer.Api_HostAddress = http://localhost:5262
+@FootballTransferApi_HostAddress = https://localhost:7176
 
-GET {{FootballTransfer.Api_HostAddress}}/weatherforecast/
+GET {{FootballTransferApi_HostAddress}}/api/news
 Accept: application/json
 
 ###
+
+POST {{FootballTransferApi_HostAddress}}/api/news
+Content-Type: application/json
+
+{
+  "title": "Liverpool interested in Florian Wirtz",
+  "content": "Liverpool are monitoring Florian Wirtz.",
+  "source": "BBC Sport",
+  "url": "https://bbc.com",
+  "publishedAt": "2026-06-16T12:00:00Z"
+}
