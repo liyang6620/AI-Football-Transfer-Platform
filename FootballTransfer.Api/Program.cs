@@ -1,4 +1,5 @@
 using FootballTransfer.Api.Data;
+using FootballTransfer.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FootballTransfer.Api
@@ -14,6 +15,8 @@ namespace FootballTransfer.Api
             builder.Services.AddDbContext<FootballTransferDbContext>(options =>
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddScoped<NewsService>();
 
             builder.Services.AddOpenApi();
 

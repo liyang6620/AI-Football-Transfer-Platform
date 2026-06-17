@@ -1,7 +1,6 @@
-﻿using FootballTransfer.Api.Data;
-using FootballTransfer.Api.Models;
+﻿using FootballTransfer.Api.Models;
+using FootballTransfer.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FootballTransfer.Api.Controllers;
 
@@ -9,17 +8,17 @@ namespace FootballTransfer.Api.Controllers;
 [ApiController]
 public class NewsController : ControllerBase
 {
-    private readonly FootballTransferDbContext _context;
+    private readonly NewsService _newsService;
 
-    public NewsController(FootballTransferDbContext context)
+    public NewsController(NewsService newsService)
     {
-        _context = context;
+        _newsService = newsService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var news = await _context.TransferNews.ToListAsync();
+        var news = await _newsService.GetAllNewsAsync();
 
         return Ok(news);
     }
@@ -27,10 +26,8 @@ public class NewsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(TransferNews news)
     {
-        _context.TransferNews.Add(news);
+        var createdNews = await _newsService.CreateNewsAsync(news);
 
-        await _context.SaveChangesAsync();
-
-        return Ok(news);
+        return Ok(createdNews);
     }
 }
