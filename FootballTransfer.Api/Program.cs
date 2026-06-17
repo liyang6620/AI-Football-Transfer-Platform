@@ -17,6 +17,8 @@ namespace FootballTransfer.Api
                     builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<NewsService>();
+            builder.Services.AddScoped<NewsCrawlerService>();
+            builder.Services.AddHttpClient();
 
             builder.Services.AddOpenApi();
 

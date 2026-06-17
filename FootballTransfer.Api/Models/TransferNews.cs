@@ -1,6 +1,4 @@
-﻿namespace FootballTransfer.Api.Models;
-
-public class TransferNews
+﻿public class TransferNews
 {
     public int Id { get; set; }
 
@@ -15,4 +13,8 @@ public class TransferNews
     public DateTime PublishedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public bool IsProcessed { get; set; } = false;
+
+    public string? AiSummary { get; set; }
 }

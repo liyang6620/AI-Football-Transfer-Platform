@@ -20,6 +20,14 @@ public class NewsService
 
     public async Task<TransferNews> CreateNewsAsync(TransferNews news)
     {
+        var existingNews = await _context.TransferNews
+            .FirstOrDefaultAsync(n => n.Url == news.Url);
+
+        if (existingNews != null)
+        {
+            return existingNews;
+        }
+
         _context.TransferNews.Add(news);
 
         await _context.SaveChangesAsync();

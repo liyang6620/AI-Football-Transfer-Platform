@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FootballTransfer.Api.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/[controller]")]
 public class NewsController : ControllerBase
 {
     private readonly NewsService _newsService;
