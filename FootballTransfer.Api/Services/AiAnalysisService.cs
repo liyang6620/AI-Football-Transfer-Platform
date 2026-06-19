@@ -57,11 +57,31 @@ public class AiAnalysisService
         );
 
         news.AiSummary = aiResult.Summary;
+
         news.ExtractedPlayer = aiResult.Player;
+
         news.ExtractedClub = aiResult.Club;
+
+        news.FromClub = aiResult.FromClub;
+
+        news.ToClub = aiResult.ToClub;
+
         news.TransferType = aiResult.TransferType;
+
         news.EstimatedFee = aiResult.EstimatedFee;
+
         news.Confidence = aiResult.Confidence;
+
+        if (string.IsNullOrWhiteSpace(news.ToClub)
+            && !string.IsNullOrWhiteSpace(news.ExtractedClub)
+            && (
+                news.TransferType == "Completed Transfer"
+                || news.TransferType == "Free Transfer"
+                || news.TransferType == "Rumour"
+            ))
+        {
+            news.ToClub = news.ExtractedClub;
+        }
 
         news.IsProcessed = true;
     }

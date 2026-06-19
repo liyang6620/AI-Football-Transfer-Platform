@@ -1,4 +1,6 @@
-﻿public class TransferNews
+﻿namespace FootballTransfer.Api.Models;
+
+public class TransferNews
 {
     public int Id { get; set; }
 
@@ -21,6 +23,10 @@
     public string? ExtractedPlayer { get; set; }
 
     public string? ExtractedClub { get; set; }
+
+    public string? FromClub { get; set; }
+
+    public string? ToClub { get; set; }
 
     public string? TransferType { get; set; }
 
