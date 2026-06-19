@@ -1,9 +1,13 @@
 @FootballTransferApi_HostAddress = https://localhost:7176
 
+### Get All News
+
 GET {{FootballTransferApi_HostAddress}}/api/news
 Accept: application/json
 
 ###
+
+### Create Test News
 
 POST {{FootballTransferApi_HostAddress}}/api/news
 Content-Type: application/json
@@ -15,3 +19,21 @@ Content-Type: application/json
   "url": "https://bbc.com",
   "publishedAt": "2026-06-16T12:00:00Z"
 }
+
+###
+
+### Process Single News - Bellingham
+
+POST {{FootballTransferApi_HostAddress}}/api/news/process/3
+
+###
+
+### Process Single News - Silva Transfer
+
+POST {{FootballTransferApi_HostAddress}}/api/news/process/7
+
+###
+
+### Process All News
+
+POST {{FootballTransferApi_HostAddress}}/api/news/process-all

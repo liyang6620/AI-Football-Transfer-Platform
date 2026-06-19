@@ -34,4 +34,28 @@ public class NewsService
 
         return news;
     }
+
+    public async Task<List<TransferNews>> GetUnprocessedNewsAsync()
+    {
+        return await _context.TransferNews
+            .Where(n => !n.IsProcessed)
+            .ToListAsync();
+    }
+
+    public async Task<TransferNews?> MarkAsProcessedAsync(int id, string aiSummary)
+    {
+        var news = await _context.TransferNews.FindAsync(id);
+
+        if (news == null)
+        {
+            return null;
+        }
+
+        news.AiSummary = aiSummary;
+        news.IsProcessed = true;
+
+        await _context.SaveChangesAsync();
+
+        return news;
+    }
 }
