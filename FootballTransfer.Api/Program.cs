@@ -20,6 +20,7 @@ namespace FootballTransfer.Api
             builder.Services.AddScoped<NewsCrawlerService>();
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<OpenAiAnalysisService>();
+            builder.Services.AddHostedService<NewsBackgroundService>();
 
             builder.Services.AddOpenApi();
             builder.Services.AddScoped<AiAnalysisService>();

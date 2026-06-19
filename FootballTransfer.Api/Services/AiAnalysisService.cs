@@ -27,7 +27,6 @@ public class AiAnalysisService
         }
 
         await ProcessSingleNews(news);
-
         await _context.SaveChangesAsync();
 
         return true;
@@ -49,27 +48,52 @@ public class AiAnalysisService
         return unprocessedNews.Count;
     }
 
+    public async Task<int> ProcessUnprocessedLimitAsync(int limit)
+    {
+        var unprocessedNews = await _context.TransferNews
+            .Where(n => !n.IsProcessed)
+            .OrderByDescending(n => n.PublishedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        foreach (var news in unprocessedNews)
+        {
+            await ProcessSingleNews(news);
+        }
+
+        await _context.SaveChangesAsync();
+
+        return unprocessedNews.Count;
+    }
+
     private async Task ProcessSingleNews(TransferNews news)
     {
+        if (!IsTransferRelated(news))
+        {
+            news.AiSummary = news.Content;
+            news.ExtractedPlayer = null;
+            news.ExtractedClub = null;
+            news.FromClub = null;
+            news.ToClub = null;
+            news.TransferType = "Not Transfer Related";
+            news.EstimatedFee = null;
+            news.Confidence = 0;
+            news.IsProcessed = true;
+            return;
+        }
+
         var aiResult = await _openAiService.AnalyzeNewsAsync(
             news.Title,
             news.Content
         );
 
         news.AiSummary = aiResult.Summary;
-
         news.ExtractedPlayer = aiResult.Player;
-
         news.ExtractedClub = aiResult.Club;
-
         news.FromClub = aiResult.FromClub;
-
         news.ToClub = aiResult.ToClub;
-
         news.TransferType = aiResult.TransferType;
-
         news.EstimatedFee = aiResult.EstimatedFee;
-
         news.Confidence = aiResult.Confidence;
 
         if (string.IsNullOrWhiteSpace(news.ToClub)
@@ -84,5 +108,35 @@ public class AiAnalysisService
         }
 
         news.IsProcessed = true;
+    }
+
+    private bool IsTransferRelated(TransferNews news)
+    {
+        var text = $"{news.Title} {news.Content}".ToLower();
+
+        var keywords = new[]
+        {
+            "transfer",
+            "sign",
+            "signed",
+            "signs",
+            "joining",
+            "joins",
+            "joined",
+            "move",
+            "deal",
+            "fee",
+            "bid",
+            "loan",
+            "contract",
+            "interest",
+            "interested",
+            "monitoring",
+            "linked with",
+            "free agent",
+            "free transfer"
+        };
+
+        return keywords.Any(keyword => text.Contains(keyword));
     }
 }
