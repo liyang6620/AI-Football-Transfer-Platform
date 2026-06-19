@@ -38,3 +38,38 @@ POST {{FootballTransferApi_HostAddress}}/api/news/process-all
 
 GET {{FootballTransferApi_HostAddress}}/api/news
 Accept: application/json
+
+### Get All Transfers
+
+GET {{FootballTransferApi_HostAddress}}/api/news/transfers
+Accept: application/json
+
+###
+
+### Get Latest Transfers
+
+GET {{FootballTransferApi_HostAddress}}/api/news/latest-transfers
+Accept: application/json
+
+###
+
+### Search Transfers By Club
+
+GET {{FootballTransferApi_HostAddress}}/api/news/search?keyword=Liverpool
+Accept: application/json
+
+###
+
+### Search Transfers By Player
+
+GET {{FootballTransferApi_HostAddress}}/api/news/search?keyword=Munoz
+Accept: application/json
+
+###
+
+### Get Transfer Detail
+
+GET {{FootballTransferApi_HostAddress}}/api/news/7
+Accept: application/json
+
+###

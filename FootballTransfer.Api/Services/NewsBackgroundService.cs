@@ -37,7 +37,7 @@ public class NewsBackgroundService : BackgroundService
                     addedCount
                 );
 
-                var processedCount = await aiAnalysisService.ProcessUnprocessedLimitAsync(1);
+                var processedCount = await aiAnalysisService.ProcessUnprocessedLimitAsync(5);
 
                 _logger.LogInformation(
                     "AI processed {Count} news items.",
@@ -49,7 +49,7 @@ public class NewsBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error occurred in news background service.");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
         }
     }
 }
