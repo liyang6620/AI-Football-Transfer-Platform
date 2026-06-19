@@ -22,13 +22,7 @@ Content-Type: application/json
 
 ###
 
-### Process Single News - Bellingham
-
-POST {{FootballTransferApi_HostAddress}}/api/news/process/3
-
-###
-
-### Process Single News - Silva Transfer
+### Process Single News - OpenAI Test
 
 POST {{FootballTransferApi_HostAddress}}/api/news/process/7
 
@@ -37,3 +31,10 @@ POST {{FootballTransferApi_HostAddress}}/api/news/process/7
 ### Process All News
 
 POST {{FootballTransferApi_HostAddress}}/api/news/process-all
+
+###
+
+### Get All News After Processing
+
+GET {{FootballTransferApi_HostAddress}}/api/news
+Accept: application/json
