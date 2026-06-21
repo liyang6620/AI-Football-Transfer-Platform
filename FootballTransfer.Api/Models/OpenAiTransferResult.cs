@@ -16,5 +16,7 @@ public class OpenAiTransferResult
 
     public double Confidence { get; set; }
 
+    public string? FeeCurrency { get; set; }
+
     public string? Summary { get; set; }
 }

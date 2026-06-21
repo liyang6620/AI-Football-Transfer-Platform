@@ -15,7 +15,9 @@ public class NewsService
 
     public async Task<List<TransferNews>> GetAllNewsAsync()
     {
-        return await _context.TransferNews.ToListAsync();
+        return await _context.TransferNews
+            .OrderByDescending(n => n.PublishedAt)
+            .ToListAsync();
     }
 
     public async Task<TransferNews> CreateNewsAsync(TransferNews news)
@@ -28,6 +30,9 @@ public class NewsService
             return existingNews;
         }
 
+        news.CreatedAt = DateTime.UtcNow;
+        news.IsProcessed = false;
+
         _context.TransferNews.Add(news);
 
         await _context.SaveChangesAsync();
@@ -39,6 +44,15 @@ public class NewsService
     {
         return await _context.TransferNews
             .Where(n => !n.IsProcessed)
+            .OrderByDescending(n => n.PublishedAt)
+            .ToListAsync();
+    }
+
+    public async Task<List<Transfer>> GetTransfersAsync()
+    {
+        return await _context.Transfers
+            .Include(t => t.TransferNews)
+            .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
     }
 

@@ -70,7 +70,7 @@ public class NewsController : ControllerBase
     }
 
     [HttpGet("transfers")]
-    public async Task<IActionResult> GetTransfers()
+    public async Task<IActionResult> GetTransfersFromNews()
     {
         var news = await _newsService.GetAllNewsAsync();
 
@@ -95,6 +95,13 @@ public class NewsController : ControllerBase
             })
             .ToList();
 
+        return Ok(transfers);
+    }
+
+    [HttpGet("/api/transfers")]
+    public async Task<IActionResult> GetRealTransfers()
+    {
+        var transfers = await _newsService.GetTransfersAsync();
         return Ok(transfers);
     }
 

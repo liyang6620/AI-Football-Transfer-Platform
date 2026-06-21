@@ -22,18 +22,13 @@ public class NewsCrawlerService
 
         var added = 0;
 
-        foreach (var item in feed.Items.Take(20))
+        foreach (var item in feed.Items.Take(100))
         {
             var title = item.Title ?? string.Empty;
             var content = item.Description ?? string.Empty;
             var url = item.Link ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(url))
-            {
-                continue;
-            }
-
-            if (!IsTransferRelated(title, content))
             {
                 continue;
             }
@@ -73,42 +68,4 @@ public class NewsCrawlerService
 
         return added;
     }
-
-    private bool IsTransferRelated(string title, string content)
-    {
-        var text = $"{title} {content}".ToLower();
-
-        var keywords = new[]
-        {
-        "transfer",
-        "signing",
-        "signed from",
-        "signs from",
-        "joins from",
-        "joined from",
-        "complete signing",
-        "complete £",
-        "complete €",
-        "bid for",
-        "opening bid",
-        "offer £",
-        "offer €",
-        "fee",
-        "loan move",
-        "on loan",
-        "free transfer",
-        "free agent",
-        "release clause",
-        "linked with",
-        "interested in",
-        "monitoring",
-        "wanted by",
-        "make contact with",
-        "rejected by",
-        "preparing bid"
-    };
-
-        return keywords.Any(keyword => text.Contains(keyword));
-    }
-
 }

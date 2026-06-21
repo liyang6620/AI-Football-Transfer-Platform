@@ -49,7 +49,7 @@ public class NewsBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error occurred in news background service.");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
         }
     }
 }

@@ -1,75 +1,102 @@
 @FootballTransferApi_HostAddress = https://localhost:7176
 
-### Get All News
+
+##################################################
+### View All News
+##################################################
 
 GET {{FootballTransferApi_HostAddress}}/api/news
 Accept: application/json
 
 ###
 
-### Create Test News
+GET {{FootballTransferApi_HostAddress}}/api/transfers
+Accept: application/json
 
-POST {{FootballTransferApi_HostAddress}}/api/news
-Content-Type: application/json
+##################################################
 
-{
-  "title": "Liverpool interested in Florian Wirtz",
-  "content": "Liverpool are monitoring Florian Wirtz.",
-  "source": "BBC Sport",
-  "url": "https://bbc.com",
-  "publishedAt": "2026-06-16T12:00:00Z"
-}
+POST {{FootballTransferApi_HostAddress}}/api/news/process/6
+
+###
+##################################################
+### 1. Crawl Real BBC News
+##################################################
+
+GET {{FootballTransferApi_HostAddress}}/api/crawler
+Accept: application/json
 
 ###
 
-### Process Single News - OpenAI Test
+##################################################
+### 2. View All Crawled News
+##################################################
 
-POST {{FootballTransferApi_HostAddress}}/api/news/process/7
+GET {{FootballTransferApi_HostAddress}}/api/news
+Accept: application/json
 
 ###
 
-### Process All News
+##################################################
+### 3. Process One Real BBC News
+### 先执行第2步
+### 找到真实新闻ID
+### 然后修改下面数字
+##################################################
+
+POST {{FootballTransferApi_HostAddress}}/api/news/process/55
+
+###
+
+##################################################
+### 4. Process All Unprocessed News
+##################################################
 
 POST {{FootballTransferApi_HostAddress}}/api/news/process-all
 
 ###
 
-### Get All News After Processing
+##################################################
+### 5. View Processed News Detail
+### 修改成你的真实ID
+##################################################
 
-GET {{FootballTransferApi_HostAddress}}/api/news
+GET {{FootballTransferApi_HostAddress}}/api/news/18
 Accept: application/json
 
-### Get All Transfers
+###
+
+##################################################
+### 6. View Extracted Transfers
+##################################################
 
 GET {{FootballTransferApi_HostAddress}}/api/news/transfers
 Accept: application/json
 
 ###
 
-### Get Latest Transfers
+##################################################
+### 7. View Latest Transfers
+##################################################
 
 GET {{FootballTransferApi_HostAddress}}/api/news/latest-transfers
 Accept: application/json
 
 ###
 
-### Search Transfers By Club
+##################################################
+### 8. Search By Club
+##################################################
 
 GET {{FootballTransferApi_HostAddress}}/api/news/search?keyword=Liverpool
 Accept: application/json
 
 ###
 
-### Search Transfers By Player
+##################################################
+### 9. Search By Player
+##################################################
 
-GET {{FootballTransferApi_HostAddress}}/api/news/search?keyword=Munoz
-Accept: application/json
-
-###
-
-### Get Transfer Detail
-
-GET {{FootballTransferApi_HostAddress}}/api/news/7
+GET {{FootballTransferApi_HostAddress}}/api/news/search?keyword=Diomande
 Accept: application/json
 
 ###

@@ -21,10 +21,18 @@ namespace FootballTransfer.Api
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<OpenAiAnalysisService>();
             builder.Services.AddHostedService<NewsBackgroundService>();
-
+            builder.Services.AddScoped<ArticleContentService>();
             builder.Services.AddOpenApi();
             builder.Services.AddScoped<AiAnalysisService>();
-
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -33,7 +41,7 @@ namespace FootballTransfer.Api
             }
 
             app.UseHttpsRedirection();
-
+            app.UseCors("AllowFrontend");
             app.UseAuthorization();
 
             app.MapControllers();
