@@ -7,6 +7,9 @@ public class NewsBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<NewsBackgroundService> _logger;
 
+    private const int BatchSize = 20;
+    private const int MaxBatchesPerRun = 5;
+
     public NewsBackgroundService(
         IServiceScopeFactory scopeFactory,
         ILogger<NewsBackgroundService> logger)
@@ -37,11 +40,37 @@ public class NewsBackgroundService : BackgroundService
                     addedCount
                 );
 
-                var processedCount = await aiAnalysisService.ProcessUnprocessedLimitAsync(5);
+                var totalProcessed = 0;
+
+                for (var batch = 1; batch <= MaxBatchesPerRun; batch++)
+                {
+                    _logger.LogInformation(
+                        "Starting AI processing batch {Batch}/{MaxBatchesPerRun}...",
+                        batch,
+                        MaxBatchesPerRun
+                    );
+
+                    var processedCount =
+                        await aiAnalysisService.ProcessUnprocessedLimitAsync(BatchSize);
+
+                    totalProcessed += processedCount;
+
+                    _logger.LogInformation(
+                        "AI batch {Batch} completed. Processed {Count} news items.",
+                        batch,
+                        processedCount
+                    );
+
+                    if (processedCount == 0 || processedCount < BatchSize)
+                    {
+                        break;
+                    }
+                }
 
                 _logger.LogInformation(
-                    "AI processed {Count} news items.",
-                    processedCount
+                    "Scheduled job completed. Added {AddedCount}, processed {ProcessedCount}.",
+                    addedCount,
+                    totalProcessed
                 );
             }
             catch (Exception ex)
@@ -49,7 +78,7 @@ public class NewsBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error occurred in news background service.");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }
 }

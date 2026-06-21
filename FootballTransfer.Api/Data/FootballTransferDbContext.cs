@@ -14,4 +14,17 @@ public class FootballTransferDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<Club> Clubs { get; set; }
     public DbSet<Transfer> Transfers { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Transfer>()
+            .Property(t => t.EstimatedFee)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<TransferNews>()
+            .Property(n => n.EstimatedFee)
+            .HasPrecision(18, 2);
+    }
 }

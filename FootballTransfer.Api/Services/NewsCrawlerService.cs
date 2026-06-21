@@ -23,40 +23,57 @@ public class NewsCrawlerService
 
         var feed = await FeedReader.ReadAsync(feedUrl);
 
+        var feedItems = feed.Items
+            .Take(100)
+            .Select(item => new
+            {
+                Title = item.Title ?? string.Empty,
+                RssContent = item.Description ?? string.Empty,
+                Url = item.Link ?? string.Empty,
+                PublishedAt = item.PublishingDate ?? DateTime.UtcNow
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+            .ToList();
+
+        if (feedItems.Count == 0)
+        {
+            return 0;
+        }
+
+        var urls = feedItems
+            .Select(item => item.Url)
+            .Distinct()
+            .ToList();
+
+        var existingUrls = await _context.TransferNews
+            .Where(n => urls.Contains(n.Url))
+            .Select(n => n.Url)
+            .ToListAsync();
+
+        var existingUrlSet = existingUrls.ToHashSet();
+
         var added = 0;
 
-        foreach (var item in feed.Items.Take(100))
+        foreach (var item in feedItems)
         {
-            var title = item.Title ?? string.Empty;
-            var rssContent = item.Description ?? string.Empty;
-            var url = item.Link ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(url))
+            if (existingUrlSet.Contains(item.Url))
             {
                 continue;
             }
 
-            var exists = await _context.TransferNews
-                .AnyAsync(n => n.Url == url);
-
-            if (exists)
-            {
-                continue;
-            }
-
-            var fullContent = await GetFullArticleContentAsync(url);
+            var fullContent = await GetFullArticleContentAsync(item.Url);
 
             var finalContent = string.IsNullOrWhiteSpace(fullContent)
-                ? rssContent
+                ? item.RssContent
                 : fullContent;
 
             var news = new TransferNews
             {
-                Title = title,
+                Title = item.Title,
                 Content = finalContent,
                 Source = "BBC Sport Football",
-                Url = url,
-                PublishedAt = item.PublishingDate ?? DateTime.UtcNow,
+                Url = item.Url,
+                PublishedAt = item.PublishedAt,
                 CreatedAt = DateTime.UtcNow,
                 IsProcessed = false,
                 AiSummary = null,
@@ -70,6 +87,7 @@ public class NewsCrawlerService
             };
 
             _context.TransferNews.Add(news);
+            existingUrlSet.Add(item.Url);
             added++;
         }
 
