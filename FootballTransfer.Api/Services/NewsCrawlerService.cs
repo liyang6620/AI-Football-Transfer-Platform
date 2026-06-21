@@ -1,6 +1,7 @@
 ﻿using CodeHollow.FeedReader;
 using FootballTransfer.Api.Data;
 using FootballTransfer.Api.Models;
+using HtmlAgilityPack;
 using Microsoft.EntityFrameworkCore;
 
 namespace FootballTransfer.Api.Services;
@@ -8,10 +9,12 @@ namespace FootballTransfer.Api.Services;
 public class NewsCrawlerService
 {
     private readonly FootballTransferDbContext _context;
+    private readonly HttpClient _httpClient;
 
     public NewsCrawlerService(FootballTransferDbContext context)
     {
         _context = context;
+        _httpClient = new HttpClient();
     }
 
     public async Task<int> CrawlAndSaveAsync()
@@ -25,7 +28,7 @@ public class NewsCrawlerService
         foreach (var item in feed.Items.Take(100))
         {
             var title = item.Title ?? string.Empty;
-            var content = item.Description ?? string.Empty;
+            var rssContent = item.Description ?? string.Empty;
             var url = item.Link ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(url))
@@ -41,10 +44,16 @@ public class NewsCrawlerService
                 continue;
             }
 
+            var fullContent = await GetFullArticleContentAsync(url);
+
+            var finalContent = string.IsNullOrWhiteSpace(fullContent)
+                ? rssContent
+                : fullContent;
+
             var news = new TransferNews
             {
                 Title = title,
-                Content = content,
+                Content = finalContent,
                 Source = "BBC Sport Football",
                 Url = url,
                 PublishedAt = item.PublishingDate ?? DateTime.UtcNow,
@@ -67,5 +76,34 @@ public class NewsCrawlerService
         await _context.SaveChangesAsync();
 
         return added;
+    }
+
+    private async Task<string> GetFullArticleContentAsync(string url)
+    {
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url);
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            var paragraphs = doc.DocumentNode
+                .SelectNodes("//article//p | //main//p")
+                ?.Select(p => HtmlEntity.DeEntitize(p.InnerText.Trim()))
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct()
+                .ToList();
+
+            if (paragraphs == null || paragraphs.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            return string.Join("\n\n", paragraphs);
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 }

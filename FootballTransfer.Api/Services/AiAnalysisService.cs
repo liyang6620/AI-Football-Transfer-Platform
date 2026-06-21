@@ -42,14 +42,24 @@ public class AiAnalysisService
             .OrderByDescending(n => n.PublishedAt)
             .ToListAsync();
 
+        var processedCount = 0;
+
         foreach (var news in unprocessedNews)
         {
-            await ProcessSingleNews(news);
+            try
+            {
+                await ProcessSingleNews(news);
+                processedCount++;
+            }
+            catch
+            {
+                MarkAsFailed(news);
+            }
         }
 
         await _context.SaveChangesAsync();
 
-        return unprocessedNews.Count;
+        return processedCount;
     }
 
     public async Task<int> ProcessUnprocessedLimitAsync(int limit)
@@ -60,14 +70,24 @@ public class AiAnalysisService
             .Take(limit)
             .ToListAsync();
 
+        var processedCount = 0;
+
         foreach (var news in unprocessedNews)
         {
-            await ProcessSingleNews(news);
+            try
+            {
+                await ProcessSingleNews(news);
+                processedCount++;
+            }
+            catch
+            {
+                MarkAsFailed(news);
+            }
         }
 
         await _context.SaveChangesAsync();
 
-        return unprocessedNews.Count;
+        return processedCount;
     }
 
     private async Task ProcessSingleNews(TransferNews news)
@@ -77,6 +97,8 @@ public class AiAnalysisService
         var contentForAi = string.IsNullOrWhiteSpace(fullContent)
             ? news.Content
             : fullContent;
+
+        news.Content = contentForAi;
 
         if (!IsTransferRelated(news.Title, contentForAi))
         {
@@ -223,6 +245,19 @@ public class AiAnalysisService
         news.FromClub = null;
         news.ToClub = null;
         news.TransferType = "Not Transfer Related";
+        news.EstimatedFee = null;
+        news.Confidence = 0;
+        news.IsProcessed = true;
+    }
+
+    private static void MarkAsFailed(TransferNews news)
+    {
+        news.AiSummary = "AI processing failed.";
+        news.ExtractedPlayer = null;
+        news.ExtractedClub = null;
+        news.FromClub = null;
+        news.ToClub = null;
+        news.TransferType = "Processing Failed";
         news.EstimatedFee = null;
         news.Confidence = 0;
         news.IsProcessed = true;
