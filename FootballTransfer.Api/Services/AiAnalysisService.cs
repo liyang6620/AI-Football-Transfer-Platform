@@ -128,12 +128,7 @@ public class AiAnalysisService
 
         if (string.IsNullOrWhiteSpace(news.ToClub)
             && !string.IsNullOrWhiteSpace(news.ExtractedClub)
-            && (
-                news.TransferType == "Completed Transfer"
-                || news.TransferType == "Free Transfer"
-                || news.TransferType == "Rumour"
-                || news.TransferType == "Contract"
-            ))
+            && IsValidTransferType(news.TransferType))
         {
             news.ToClub = news.ExtractedClub;
         }
@@ -167,8 +162,7 @@ public class AiAnalysisService
             return;
         }
 
-        if (news.TransferType == "Not Transfer Related" ||
-            news.TransferType == "Unknown")
+        if (!IsValidTransferType(news.TransferType))
         {
             return;
         }
@@ -207,6 +201,14 @@ public class AiAnalysisService
         _context.Transfers.Add(transfer);
     }
 
+    private static bool IsValidTransferType(string? transferType)
+    {
+        return transferType == "Rumour"
+            || transferType == "Completed Transfer"
+            || transferType == "Free Transfer"
+            || transferType == "Contract";
+    }
+
     private static string? GetFeeCurrencyFromText(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -214,20 +216,9 @@ public class AiAnalysisService
             return null;
         }
 
-        if (text.Contains('£'))
-        {
-            return "GBP";
-        }
-
-        if (text.Contains('€'))
-        {
-            return "EUR";
-        }
-
-        if (text.Contains('$'))
-        {
-            return "USD";
-        }
+        if (text.Contains('£')) return "GBP";
+        if (text.Contains('€')) return "EUR";
+        if (text.Contains('$')) return "USD";
 
         return null;
     }
@@ -244,7 +235,7 @@ public class AiAnalysisService
         news.ExtractedClub = null;
         news.FromClub = null;
         news.ToClub = null;
-        news.TransferType = "Not Transfer Related";
+        news.TransferType = "Unknown";
         news.EstimatedFee = null;
         news.Confidence = 0;
         news.IsProcessed = true;
@@ -267,6 +258,7 @@ public class AiAnalysisService
     {
         var titleText = title.ToLowerInvariant();
         var fullText = $"{title} {content}".ToLowerInvariant();
+        var wrappedTitle = $" {titleText} ";
 
         if (titleText.Contains("done deals"))
         {
@@ -288,10 +280,27 @@ public class AiAnalysisService
             " loan",
             " free transfer",
             " close in on",
-            " set to sign"
+            " close to signing",
+            " set to sign",
+            " set to join",
+            " set to have a medical",
+            " medical",
+            " in talks",
+            " interested in",
+            " target",
+            " wants",
+            " agree ",
+            " agrees ",
+            " agreed ",
+            " agreed deal",
+            " agreed a deal",
+            " agree deal",
+            " agreed fee",
+            " agree fee",
+            " record fee"
         };
 
-        if (strongTitleKeywords.Any(keyword => $" {titleText} ".Contains(keyword)))
+        if (strongTitleKeywords.Any(keyword => wrappedTitle.Contains(keyword)))
         {
             return true;
         }
@@ -339,7 +348,20 @@ public class AiAnalysisService
             "wanted by",
             "preparing bid",
             "move to",
-            "after leaving"
+            "after leaving",
+            "agreed a deal",
+            "agreed deal",
+            "agreed fee",
+            "agree fee",
+            "record fee",
+            "set to have a medical",
+            "set for medical",
+            "medical before completing",
+            "personal terms",
+            "deal is close",
+            "deal close",
+            "close to securing",
+            "close to completing"
         };
 
         return includeKeywords.Any(keyword => fullText.Contains(keyword));

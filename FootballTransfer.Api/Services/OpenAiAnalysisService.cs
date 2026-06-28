@@ -50,7 +50,7 @@ public class OpenAiAnalysisService
             "- If the article is mainly asking what a club's plan is for a player, whether a player is ready, or how a player performed last season, return Unknown unless the main subject is a new current bid, offer, signing, loan, or contract extension.\n\n" +
 
             "CURRENT TRANSFER SIGNALS:\n" +
-            "- Current transfer story usually uses signals such as: has signed, have signed, completed the signing, agreed a deal, made a bid, rejected a bid, submitted an offer, preparing an offer, willing to pay, close to signing, in talks, interested in signing, wants to sign, set to join, joins on loan, signs on a free transfer.\n" +
+            "- Current transfer story usually uses signals such as: has signed, have signed, completed the signing, agreed a deal, agreed a fee, agreed record fee, made a bid, rejected a bid, submitted an offer, preparing an offer, willing to pay, close to signing, set to have a medical, in talks, interested in signing, wants to sign, set to join, joins on loan, signs on a free transfer.\n" +
             "- These signals must describe the article's main current event, not an old event mentioned in background.\n\n" +
 
             "OLD / BACKGROUND TRANSFER SIGNALS THAT SHOULD USUALLY RETURN UNKNOWN:\n" +
@@ -60,6 +60,7 @@ public class OpenAiAnalysisService
             "- moved from X to Y previously\n" +
             "- was bought for £Xm\n" +
             "- cost the club £Xm in the past\n" +
+            "- a £Xm signing from another club in a previous year\n" +
             "- returned from loan\n" +
             "- will be back in the building following his loan spell\n" +
             "- will be given a fresh start\n" +
@@ -88,35 +89,41 @@ public class OpenAiAnalysisService
             "- If transferType is Free Transfer, estimatedFee must be 0 and feeCurrency must be null.\n\n" +
 
             "CONFIDENCE RULES:\n" +
-            "- confidence must represent how certain the CURRENT transfer event extraction is.\n" +
-            "- confidence is NOT about how famous the source is.\n" +
-            "- confidence is NOT about how good the player is.\n" +
-            "- confidence measures whether the article clearly supports the extracted transfer event.\n" +
-            "- Use 0.95 to 1.00 only for official confirmed signings, official club announcements, confirmed loans, confirmed free transfers, confirmed contract extensions, or clearly completed transfers.\n" +
-            "- Use 0.85 to 0.94 for very clear transfer events that are not officially completed, such as rejected bids, submitted offers, agreed packages, clubs willing to pay a specific fee, release clauses triggered, or reports saying a deal is close.\n" +
-            "- Use 0.70 to 0.84 for normal transfer rumours where the article clearly states that a club is interested, targeting, monitoring, considering, linked with, chasing, negotiating, or in talks.\n" +
-            "- Use 0.50 to 0.69 when significant uncertainty exists, such as weak rumours, unclear clubs, unclear player identification, gossip roundups, or multiple unrelated rumours in the same article.\n" +
-            "- Use 0.0 if transferType is Unknown.\n" +
-            "- Never use confidence above 0.70 if the article is mainly a gossip roundup containing multiple different rumours.\n" +
-            "- Never use confidence above 0.60 if player name is unclear.\n" +
-            "- Never use confidence above 0.60 if toClub is unclear.\n" +
-            "- Never use confidence above 0.50 if fromClub is unclear for a paid transfer.\n" +
-            "- Never use high confidence for historical transfers, player profiles, biographies, World Cup stories, interviews, tactical analysis, or old transfer fees.\n" +
-            "- Confidence should decrease whenever key transfer details must be guessed or inferred.\n\n" +
+            "- Return a confidence score between 0.00 and 1.00.\n" +
+            "- There is no predefined correct score.\n" +
+            "- Do not assign confidence based only on transferType.\n" +
+            "- Do not use fixed template values for Rumour, Completed Transfer, Free Transfer, or Contract.\n" +
+            "- Imagine you are an experienced football journalist reading this article for the first time.\n" +
+            "- After reading the entire article, ask yourself: If this were the only article I had, how convinced would I personally be that this transfer information is true?\n" +
+            "- Base your judgement on the overall evidence in this specific article.\n" +
+            "- Consider the wording of the title, the wording of the article, whether the transfer is the main subject, whether the language is direct or speculative, whether important facts are explicit, whether the article sounds official or speculative, and whether information is quoted or merely suggested.\n" +
+            "- Different articles with the same transferType should naturally receive different confidence scores.\n" +
+            "- Different completed transfers may also receive different confidence scores.\n" +
+            "- Avoid repeatedly returning the same confidence values such as 0.85, 0.88, 0.90, or 0.95.\n" +
+            "- If you notice that your confidence values are becoming repetitive, reconsider your reasoning and choose the value that genuinely reflects the strength of evidence in THIS article.\n" +
+            "- Confidence should be your own judgement, not a template.\n" +
+            "- If transferType is Unknown, confidence must be 0.0.\n\n" +
 
             "TRANSFER TYPE RULES:\n" +
-            "- Use Completed Transfer only if the article's main subject says the player has already signed, joined, completed a move, or the club confirmed the signing now.\n" +
-            "- Use Completed Transfer only for a current new move, not an old signing described in a player profile.\n" +
-            "- Use Rumour if the article's main subject says bid, offer, interested, target, linked with, want, chase, talks, close to signing, preparing an offer, willing to pay, negotiating, or in pole position.\n" +
-            "- Use Rumour only if the current rumour is the article's main subject, not a side detail.\n" +
-            "- Use Free Transfer if the main move is clearly a free transfer, free agent signing, out-of-contract signing, or joined on a free.\n" +
-            "- Use Contract if the main subject is renewal, extension, new deal, or contract talks.\n" +
+            "- transferType must be exactly one of: Rumour, Completed Transfer, Free Transfer, Contract, Unknown.\n" +
+            "- Use Completed Transfer ONLY if the article explicitly states that the transfer has already been officially completed AND the buying club has officially confirmed or announced the signing.\n" +
+            "- Strong Completed Transfer signals include: the club announced, officially announced, officially confirmed, official statement, official club website, confirmed the signing, completed the signing, the player has officially signed, the player has officially joined, unveiled by the club.\n" +
+            "- Do NOT classify as Completed Transfer if the article only says: agreed a fee, agreed a deal, agreement reached, record fee agreed, bid accepted, personal terms agreed, expected to sign, close to joining, close to completing, set to join, set to have a medical, medical booked, medical scheduled, subject to medical, formalities remain, or awaiting official confirmation.\n" +
+            "- All of the situations above are still Rumour because the transfer has not yet been officially confirmed by the buying club.\n" +
+            "- Even if journalists describe the transfer as almost certain, classify it as Rumour until the buying club officially announces the signing.\n" +
+            "- Use Rumour for all transfer reports that have not yet received an official club announcement.\n" +
+            "- Use Free Transfer only if the player has officially joined on a free transfer.\n" +
+            "- Use Contract only if the article is mainly about a contract renewal, contract extension, or a newly signed contract.\n" +
             "- Use Unknown if the article is not mainly about a current transfer story.\n\n" +
 
             "FEE RULES:\n" +
             "- Valid examples: £86m -> estimatedFee 86 and feeCurrency GBP; €100m -> estimatedFee 100 and feeCurrency EUR; $40m -> estimatedFee 40 and feeCurrency USD.\n" +
             "- If the article says 'undisclosed fee', 'fee undisclosed', 'unknown fee', 'fee not disclosed', or 'it is unknown what fee', return estimatedFee null and feeCurrency null.\n" +
             "- Free Transfer means estimatedFee 0 and feeCurrency null.\n" +
+            "- For loans, only extract a fee if the article clearly states the CURRENT loan fee. If no current loan fee is stated, return estimatedFee null and feeCurrency null.\n" +
+            "- If the article says 'no option to buy', 'no buy option', or only discusses a loan agreement without a current fee, do not infer a fee.\n" +
+            "- Do NOT use the player's old transfer fee, old purchase price, previous signing fee, market value, or historical fee as the current estimatedFee.\n" +
+            "- Do NOT use numbers from phrases like 'a £47.2m signing from Inter Milan in 2023' as the current fee.\n" +
             "- Do NOT use numbers for player age, appearances, goals, assists, shirt numbers, contract length, years remaining, seasons, rankings, match statistics, or dates as fees.\n" +
             "- Do NOT use historical fees from old signings as current estimatedFee.\n\n" +
 
@@ -135,54 +142,6 @@ public class OpenAiAnalysisService
             "  \"summary\": \"The article is about Harry Kane's World Cup performance, not a current transfer.\"\n" +
             "}\n\n" +
 
-            "NEGATIVE EXAMPLE 2:\n" +
-            "Title: 'Star in the making' - what is Man City's plan for forgotten man Reis?\n" +
-            "Content says: Vitor Reis played last season on loan at Girona. Manchester City signed him in January 2025 for £29.6m. He will return for pre-season and may go out on loan again.\n" +
-            "Correct JSON:\n" +
-            "{\n" +
-            "  \"player\": null,\n" +
-            "  \"club\": null,\n" +
-            "  \"fromClub\": null,\n" +
-            "  \"toClub\": null,\n" +
-            "  \"transferType\": \"Unknown\",\n" +
-            "  \"estimatedFee\": null,\n" +
-            "  \"feeCurrency\": null,\n" +
-            "  \"confidence\": 0.0,\n" +
-            "  \"summary\": \"The article is mainly about Manchester City's plan for Vitor Reis after a loan spell and mentions an old signing fee, not a current transfer.\"\n" +
-            "}\n\n" +
-
-            "NEGATIVE EXAMPLE 3:\n" +
-            "Title: Real Madrid deny contact with Bayern's Olise\n" +
-            "Content says: Real Madrid deny reports linking them with Michael Olise and say they have not had contact with the player or representatives.\n" +
-            "Correct JSON:\n" +
-            "{\n" +
-            "  \"player\": null,\n" +
-            "  \"club\": null,\n" +
-            "  \"fromClub\": null,\n" +
-            "  \"toClub\": null,\n" +
-            "  \"transferType\": \"Unknown\",\n" +
-            "  \"estimatedFee\": null,\n" +
-            "  \"feeCurrency\": null,\n" +
-            "  \"confidence\": 0.0,\n" +
-            "  \"summary\": \"The article says Real Madrid deny contact over Michael Olise, so there is no current transfer event to extract.\"\n" +
-            "}\n\n" +
-
-            "NEGATIVE EXAMPLE 4:\n" +
-            "Title: Everything I do is for you - how tragedy is driving Diomande\n" +
-            "Content mentions Liverpool are willing to pay £86m for Diomande, but the article is mainly a personal story about the player, his family and World Cup journey.\n" +
-            "Correct JSON:\n" +
-            "{\n" +
-            "  \"player\": null,\n" +
-            "  \"club\": null,\n" +
-            "  \"fromClub\": null,\n" +
-            "  \"toClub\": null,\n" +
-            "  \"transferType\": \"Unknown\",\n" +
-            "  \"estimatedFee\": null,\n" +
-            "  \"feeCurrency\": null,\n" +
-            "  \"confidence\": 0.0,\n" +
-            "  \"summary\": \"The article is mainly a player profile and personal story, not a current transfer article.\"\n" +
-            "}\n\n" +
-
             "POSITIVE EXAMPLE 1:\n" +
             "Title: Newcastle reject Spurs bid of about £80m for Tonali\n" +
             "Correct JSON:\n" +
@@ -194,40 +153,34 @@ public class OpenAiAnalysisService
             "  \"transferType\": \"Rumour\",\n" +
             "  \"estimatedFee\": 80,\n" +
             "  \"feeCurrency\": \"GBP\",\n" +
-            "  \"confidence\": 0.88,\n" +
+            "  \"confidence\": 0.0,\n" +
             "  \"summary\": \"Newcastle United have rejected Tottenham Hotspur's bid of about £80m for Sandro Tonali.\"\n" +
             "}\n\n" +
 
-            "POSITIVE EXAMPLE 2:\n" +
-            "Title: Tottenham sign Scotland forward Hanson from Villa\n" +
-            "Content says: undisclosed fee and 22 matches.\n" +
-            "Correct JSON:\n" +
-            "{\n" +
-            "  \"player\": \"Kirsty Hanson\",\n" +
-            "  \"club\": \"Tottenham Hotspur\",\n" +
-            "  \"fromClub\": \"Aston Villa\",\n" +
-            "  \"toClub\": \"Tottenham Hotspur\",\n" +
-            "  \"transferType\": \"Completed Transfer\",\n" +
-            "  \"estimatedFee\": null,\n" +
-            "  \"feeCurrency\": null,\n" +
-            "  \"confidence\": 0.96,\n" +
-            "  \"summary\": \"Tottenham Hotspur have signed Kirsty Hanson from Aston Villa for an undisclosed fee.\"\n" +
-            "}\n\n" +
-
-            "POSITIVE EXAMPLE 3:\n" +
-            "Title: Player joins Club on free transfer\n" +
+            "NEGATIVE FEE EXAMPLE:\n" +
+            "Title: Man Utd player set for loan move\n" +
+            "Content says: The player is close to joining another club on loan. He was a £47.2m signing from Inter Milan in 2023. There is no option to buy.\n" +
             "Correct JSON:\n" +
             "{\n" +
             "  \"player\": \"Player\",\n" +
-            "  \"club\": \"Club\",\n" +
-            "  \"fromClub\": null,\n" +
-            "  \"toClub\": \"Club\",\n" +
-            "  \"transferType\": \"Free Transfer\",\n" +
-            "  \"estimatedFee\": 0,\n" +
+            "  \"club\": \"Another Club\",\n" +
+            "  \"fromClub\": \"Manchester United\",\n" +
+            "  \"toClub\": \"Another Club\",\n" +
+            "  \"transferType\": \"Rumour\",\n" +
+            "  \"estimatedFee\": null,\n" +
             "  \"feeCurrency\": null,\n" +
-            "  \"confidence\": 0.95,\n" +
-            "  \"summary\": \"Player has joined Club on a free transfer.\"\n" +
+            "  \"confidence\": 0.0,\n" +
+            "  \"summary\": \"The player is close to joining another club on loan, but no current loan fee is stated.\"\n" +
             "}\n\n" +
+
+            "IMPORTANT FINAL CHECK:\n" +
+            "- The examples above use confidence 0.0 only to avoid teaching fixed scores.\n" +
+            "- For the real article below, you must choose your own confidence score based on the evidence in the article.\n" +
+            "- Do not copy confidence values from the examples.\n" +
+            "- Before returning JSON, check that estimatedFee belongs to the CURRENT transfer event, not an old transfer mentioned as background.\n" +
+            "- Before deciding transferType, ask yourself: Has the buying club officially confirmed or announced this signing?\n" +
+            "- If the answer is NO, transferType should almost always be Rumour rather than Completed Transfer.\n" +
+            "- Never classify a transfer as Completed Transfer solely because a fee has been agreed, a medical has been scheduled, or journalists believe the deal is close.\n\n" +
 
             "News title:\n" +
             title + "\n\n" +
@@ -274,7 +227,6 @@ public class OpenAiAnalysisService
 
         return result;
     }
-
     private OpenAiTransferResult CreateFallbackResult(string title, string content)
     {
         var summarySource = !string.IsNullOrWhiteSpace(content) ? content : title;
@@ -339,9 +291,17 @@ public class OpenAiAnalysisService
             " loan",
             " close in on",
             " set to sign",
+            " set to join",
+            " set to have a medical",
+            " medical",
             " reject ",
             " rejects ",
             " rejected ",
+            " agree ",
+            " agreed ",
+            " agreed deal",
+            " agreed fee",
+            " record fee",
             " weigh up",
             " interested in"
         };
@@ -367,50 +327,27 @@ public class OpenAiAnalysisService
 
     private static void ApplyConfidenceRules(OpenAiTransferResult result, string title, string content)
     {
-        var text = $"{title} {content}".ToLowerInvariant();
-
         if (result.TransferType == "Unknown")
         {
             result.Confidence = 0;
             return;
         }
 
-        if (text.Contains("gossip"))
+        if (double.IsNaN(result.Confidence) || double.IsInfinity(result.Confidence))
         {
-            result.Confidence = Math.Min(result.Confidence, 0.65);
+            result.Confidence = 0;
         }
 
-        if (result.TransferType == "Rumour")
-        {
-            result.Confidence = Math.Min(result.Confidence, 0.88);
-        }
-
-        if (string.IsNullOrWhiteSpace(result.Player) ||
-            string.IsNullOrWhiteSpace(result.ToClub))
-        {
-            result.Confidence = Math.Min(result.Confidence, 0.60);
-        }
-
-        if (result.TransferType != "Free Transfer"
-            && result.TransferType != "Contract"
-            && string.IsNullOrWhiteSpace(result.FromClub))
-        {
-            result.Confidence = Math.Min(result.Confidence, 0.65);
-        }
-
-        if (text.Contains("deny")
-            || text.Contains("denied")
-            || text.Contains("dismissed as speculation"))
-        {
-            result.Confidence = Math.Min(result.Confidence, 0.40);
-        }
+        result.Confidence = Math.Clamp(result.Confidence, 0, 1);
+        result.Confidence = Math.Round(result.Confidence, 2);
     }
 
     private static void ApplyFeeFallback(OpenAiTransferResult result, string title, string content)
     {
         var text = $"{title} {content}";
+        var lowerText = text.ToLowerInvariant();
 
-        if (ContainsUndisclosedFee(text.ToLowerInvariant()))
+        if (ContainsUndisclosedFee(lowerText))
         {
             result.EstimatedFee = null;
             result.FeeCurrency = null;
@@ -427,6 +364,13 @@ public class OpenAiAnalysisService
         if (result.TransferType == "Free Transfer")
         {
             result.EstimatedFee = 0;
+            result.FeeCurrency = null;
+            return;
+        }
+
+        if (IsLoanWithoutCurrentFee(lowerText))
+        {
+            result.EstimatedFee = null;
             result.FeeCurrency = null;
             return;
         }
@@ -448,6 +392,42 @@ public class OpenAiAnalysisService
         result.FeeCurrency = extractedFee.HasValue
             ? ExtractFeeCurrency(text)
             : null;
+    }
+
+    private static bool IsLoanWithoutCurrentFee(string text)
+    {
+        var hasLoanSignal =
+            text.Contains("loan") ||
+            text.Contains("on loan") ||
+            text.Contains("loan move") ||
+            text.Contains("loan deal");
+
+        if (!hasLoanSignal)
+        {
+            return false;
+        }
+
+        var hasCurrentFeeSignal =
+            text.Contains("loan fee") ||
+            text.Contains("loan fee of") ||
+            text.Contains("fee for the loan") ||
+            text.Contains("paid a loan fee");
+
+        if (hasCurrentFeeSignal)
+        {
+            return false;
+        }
+
+        return text.Contains("no option to buy")
+            || text.Contains("no buy option")
+            || text.Contains("no option")
+            || text.Contains("without an option to buy")
+            || text.Contains("no fee")
+            || text.Contains("no current fee")
+            || text.Contains("close to securing")
+            || text.Contains("set for")
+            || text.Contains("set to join")
+            || text.Contains("return to");
     }
 
     private static decimal? ExtractFeeNumber(string text)
@@ -515,37 +495,15 @@ public class OpenAiAnalysisService
             return null;
         }
 
-        if (text.Contains('£'))
-        {
-            return "GBP";
-        }
-
-        if (text.Contains('€'))
-        {
-            return "EUR";
-        }
-
-        if (text.Contains('$'))
-        {
-            return "USD";
-        }
+        if (text.Contains('£')) return "GBP";
+        if (text.Contains('€')) return "EUR";
+        if (text.Contains('$')) return "USD";
 
         var lowerText = text.ToLowerInvariant();
 
-        if (lowerText.Contains("pounds"))
-        {
-            return "GBP";
-        }
-
-        if (lowerText.Contains("euros"))
-        {
-            return "EUR";
-        }
-
-        if (lowerText.Contains("dollars"))
-        {
-            return "USD";
-        }
+        if (lowerText.Contains("pounds")) return "GBP";
+        if (lowerText.Contains("euros")) return "EUR";
+        if (lowerText.Contains("dollars")) return "USD";
 
         return null;
     }

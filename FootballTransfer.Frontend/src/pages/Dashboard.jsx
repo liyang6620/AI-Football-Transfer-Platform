@@ -14,22 +14,25 @@ export default function Dashboard() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      api.getLatestTransfers().catch((e) => {
-        setError(e.message);
-        return []
-      }),
-      api.getTransfers().catch((e) => {
-        setError(e.message);
-        return []
-      }),
-    ])
-      .then(([a, b]) => {
+    let mounted = true
+    async function load() {
+      try {
+        setLoading(true)
+        const [a, b] = await Promise.all([
+          api.getLatestTransfers().catch((e) => { setError(e.message); return [] }),
+          api.getTransfers().catch((e) => { setError(e.message); return [] }),
+        ])
+        if (!mounted) return
         setLatest(a || [])
         setTransfers(b || [])
-      })
-      .finally(() => setLoading(false))
+      } catch (e) {
+        if (mounted) setError(e.message)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
   }, [])
 
   async function handleSearch(q) {
@@ -70,7 +73,7 @@ export default function Dashboard() {
       .filter((v) => v !== null)
     if (arr.length === 0) return 'N/A'
     const avg = arr.reduce((s, x) => s + x, 0) / arr.length
-    return `${avg.toFixed(1)}%`
+    return `${(avg * 100).toFixed(1)}%`
   }, [sourceItems])
 
   return (

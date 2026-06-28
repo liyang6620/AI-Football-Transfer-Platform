@@ -1,0 +1,4 @@
+﻿DELETE FROM TransferNews;
+DELETE FROM Transfers;
+DBCC CHECKIDENT ('Transfers', RESEED, 0);
+DBCC CHECKIDENT ('TransferNews', RESEED, 0);

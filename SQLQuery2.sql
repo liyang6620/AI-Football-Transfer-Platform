@@ -1,0 +1,2 @@
+﻿DELETE FROM Transfers;
+DBCC CHECKIDENT ('Transfers', RESEED, 0);

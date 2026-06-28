@@ -8,6 +8,19 @@ function parseNumber(val) {
   return parseFloat(s)
 }
 
+function formatFee(estimatedFee, feeCurrency) {
+  if (estimatedFee === null || estimatedFee === undefined) return 'Undisclosed'
+  const v = estimatedFee
+  const rounded = typeof v === 'number' ? v : parseFloat(String(v))
+  if (isNaN(rounded)) return 'Undisclosed'
+  const m = `${rounded}m`
+  const cur = (feeCurrency || '').toString().toUpperCase()
+  if (cur === 'GBP' || cur === '£') return `£${m}`
+  if (cur === 'EUR' || cur === '€') return `€${m}`
+  if (cur === 'USD' || cur === '$') return `$${m}`
+  return `${rounded}${cur ? ' ' + cur : ''}m`
+}
+
 export default function TransfersTable({ items = [], onRowClick }) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -34,11 +47,13 @@ export default function TransfersTable({ items = [], onRowClick }) {
         av = new Date(a.date || a.publishedAt || 0).getTime() || 0
         bv = new Date(b.date || b.publishedAt || 0).getTime() || 0
       } else if (sortBy === 'fee') {
-        av = parseNumber(a.fee || a.transferFee || a.amount)
-        bv = parseNumber(b.fee || b.transferFee || b.amount)
+        av = a.estimatedFee ?? a.fee ?? a.transferFee ?? a.amount
+        bv = b.estimatedFee ?? b.fee ?? b.transferFee ?? b.amount
+        av = typeof av === 'number' ? av : parseNumber(av)
+        bv = typeof bv === 'number' ? bv : parseNumber(bv)
       } else if (sortBy === 'confidence') {
-        av = parseNumber(a.confidence ?? a.confidenceScore ?? a.score)
-        bv = parseNumber(b.confidence ?? b.confidenceScore ?? b.score)
+        av = Number(a.confidence ?? a.confidenceScore ?? a.score)
+        bv = Number(b.confidence ?? b.confidenceScore ?? b.score)
       }
       if (isNaN(av)) av = 0
       if (isNaN(bv)) bv = 0
@@ -91,9 +106,11 @@ export default function TransfersTable({ items = [], onRowClick }) {
             const player = it.player || it.playerName || it.title || 'Unknown'
             const from = it.fromClub || it.from || it.clubFrom || '—'
             const to = it.toClub || it.to || it.clubTo || '—'
-            const fee = it.fee || it.transferFee || it.amount || 'Undisclosed'
+            const estimatedFee = it.estimatedFee ?? it.fee ?? it.transferFee ?? it.amount ?? null
+            const fee = formatFee(estimatedFee, it.feeCurrency || it.currency)
             const type = it.transferType || it.type || 'Unknown'
-            const confidence = it.confidence ?? it.confidenceScore ?? it.score
+            const confidenceRaw = it.confidence ?? it.confidenceScore ?? it.score
+            const confidenceDisplay = (confidenceRaw !== undefined && confidenceRaw !== null && confidenceRaw !== '') ? `${Math.round(Number(confidenceRaw) * 100)}%` : 'N/A'
             return (
               <tr key={it.id || it.newsId || it._id} onClick={() => onRowClick && onRowClick(it)}>
                 <td>{player}</td>
@@ -101,7 +118,7 @@ export default function TransfersTable({ items = [], onRowClick }) {
                 <td>{to}</td>
                 <td>{fee}</td>
                 <td>{new Date(it.date || it.publishedAt || '').toLocaleDateString()}</td>
-                <td>{(confidence !== undefined && confidence !== null) ? `${confidence}%` : 'N/A'}</td>
+                <td>{confidenceDisplay}</td>
                 <td><Badge type={type} /></td>
               </tr>
             )

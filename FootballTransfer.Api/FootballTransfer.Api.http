@@ -14,12 +14,11 @@ GET {{FootballTransferApi_HostAddress}}/api/transfers
 Accept: application/json
 
 ##################################################
-
-POST {{FootballTransferApi_HostAddress}}/api/news/process/6
+POST {{FootballTransferApi_HostAddress}}/api/crawler/crawl
+Accept: application/json
 
 ################################################
 ### 4. Process Unprocessed News
 ################################################
-
-POST {{FootballTransferApi_HostAddress}}/api/ai/process-unprocessed
+POST {{FootballTransferApi_HostAddress}}/api/ai/process-unprocessed/15
 Accept: application/json

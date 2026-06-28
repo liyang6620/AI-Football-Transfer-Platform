@@ -24,7 +24,7 @@ public class NewsCrawlerService
         var feed = await FeedReader.ReadAsync(feedUrl);
 
         var feedItems = feed.Items
-            .Take(100)
+            .Take(500)
             .Select(item => new
             {
                 Title = item.Title ?? string.Empty,

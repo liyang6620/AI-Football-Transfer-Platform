@@ -26,11 +26,12 @@ namespace FootballTransfer.Api
             builder.Services.AddScoped<AiAnalysisService>();
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowFrontend", policy =>
+                options.AddPolicy("Frontend", policy =>
                 {
-                    policy.WithOrigins("http://localhost:5173")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy
+                        .WithOrigins("http://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
                 });
             });
             var app = builder.Build();
@@ -41,7 +42,7 @@ namespace FootballTransfer.Api
             }
 
             app.UseHttpsRedirection();
-            app.UseCors("AllowFrontend");
+            app.UseCors("Frontend");
             app.UseAuthorization();
 
             app.MapControllers();

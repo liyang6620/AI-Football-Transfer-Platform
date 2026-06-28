@@ -47,7 +47,10 @@ public class NewsController : ControllerBase
 
         if (!result)
         {
-            return NotFound("News not found.");
+            return NotFound(new
+            {
+                message = "News not found."
+            });
         }
 
         return Ok(new
@@ -69,8 +72,8 @@ public class NewsController : ControllerBase
         });
     }
 
-    [HttpGet("transfers")]
-    public async Task<IActionResult> GetTransfersFromNews()
+    [HttpGet("extracted-transfers")]
+    public async Task<IActionResult> GetExtractedTransfersFromNews()
     {
         var news = await _newsService.GetAllNewsAsync();
 
@@ -98,15 +101,8 @@ public class NewsController : ControllerBase
         return Ok(transfers);
     }
 
-    [HttpGet("/api/transfers")]
-    public async Task<IActionResult> GetRealTransfers()
-    {
-        var transfers = await _newsService.GetTransfersAsync();
-        return Ok(transfers);
-    }
-
-    [HttpGet("latest-transfers")]
-    public async Task<IActionResult> GetLatestTransfers()
+    [HttpGet("latest-extracted-transfers")]
+    public async Task<IActionResult> GetLatestExtractedTransfers()
     {
         var news = await _newsService.GetAllNewsAsync();
 
@@ -134,11 +130,14 @@ public class NewsController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> SearchTransfers([FromQuery] string keyword)
+    public async Task<IActionResult> SearchNews([FromQuery] string keyword)
     {
         if (string.IsNullOrWhiteSpace(keyword))
         {
-            return BadRequest("Keyword is required.");
+            return BadRequest(new
+            {
+                message = "Keyword is required."
+            });
         }
 
         var news = await _newsService.GetAllNewsAsync();
@@ -175,7 +174,7 @@ public class NewsController : ControllerBase
         return Ok(results);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var news = await _newsService.GetAllNewsAsync();
@@ -184,7 +183,10 @@ public class NewsController : ControllerBase
 
         if (item == null)
         {
-            return NotFound("News not found.");
+            return NotFound(new
+            {
+                message = "News not found."
+            });
         }
 
         return Ok(item);
