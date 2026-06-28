@@ -8,7 +8,7 @@ public class NewsBackgroundService : BackgroundService
     private readonly ILogger<NewsBackgroundService> _logger;
 
     private const int BatchSize = 20;
-    private const int MaxBatchesPerRun = 5;
+    private const int MaxBatchesPerRun = 10;
 
     public NewsBackgroundService(
         IServiceScopeFactory scopeFactory,
@@ -78,7 +78,7 @@ public class NewsBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error occurred in news background service.");
             }
 
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromDays(30), stoppingToken);
         }
     }
 }
