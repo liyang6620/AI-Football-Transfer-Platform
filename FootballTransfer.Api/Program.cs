@@ -13,8 +13,7 @@ namespace FootballTransfer.Api
             builder.Services.AddControllers();
 
             builder.Services.AddDbContext<FootballTransferDbContext>(options =>
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddScoped<NewsService>();
             builder.Services.AddScoped<NewsCrawlerService>();
