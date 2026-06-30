@@ -28,7 +28,8 @@ namespace FootballTransfer.Api
                 options.AddPolicy("Frontend", policy =>
                 {
                     policy
-                        .WithOrigins("http://localhost:5173")
+                        .WithOrigins("http://localhost:5173",
+                                    "https://ai-football-transfer-platform.pages.dev")
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });
