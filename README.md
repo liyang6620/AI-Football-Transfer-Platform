@@ -325,10 +325,6 @@ This project demonstrates practical experience in:
 
 Yang Li
 
-Master of Data Science
-
-Massey University
-
 Auckland, New Zealand
 
 ---
