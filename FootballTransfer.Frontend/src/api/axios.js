@@ -1,8 +1,11 @@
-import axios from 'axios'
+import axios from "axios";
+
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "https://football-transfer-api.onrender.com";
 
 const api = axios.create({
-  baseURL: 'https://localhost:7176/api',
-  timeout: 15000,
-})
+    baseURL: `${API_BASE}/api`,
+    timeout: 15000,
+});
 
-export default api
+export default api;
