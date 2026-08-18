@@ -19,8 +19,9 @@ public class TransfersController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var transfers = await _context.Transfers
-            .Include(t => t.TransferNews)
+            .AsNoTracking()
             .OrderByDescending(t => t.PublishedAt)
+            .Take(200)
             .Select(t => new
             {
                 t.Id,
@@ -52,7 +53,7 @@ public class TransfersController : ControllerBase
     public async Task<IActionResult> GetById(int id)
     {
         var transfer = await _context.Transfers
-            .Include(t => t.TransferNews)
+            .AsNoTracking()
             .Where(t => t.Id == id)
             .Select(t => new
             {
@@ -114,7 +115,7 @@ public class TransfersController : ControllerBase
         var lowerKeyword = keyword.ToLower();
 
         var transfers = await _context.Transfers
-            .Include(t => t.TransferNews)
+            .AsNoTracking()
             .Where(t =>
                 (t.PlayerName != null &&
                  t.PlayerName.ToLower().Contains(lowerKeyword))
@@ -135,6 +136,7 @@ public class TransfersController : ControllerBase
                  t.TransferType.ToLower().Contains(lowerKeyword))
             )
             .OrderByDescending(t => t.PublishedAt)
+            .Take(100)
             .Select(t => new
             {
                 t.Id,

@@ -187,14 +187,6 @@ public class OpenAiAnalysisService
             "News content:\n" +
             content;
 
-        Console.WriteLine("============== OPENAI INPUT ==============");
-        Console.WriteLine("TITLE:");
-        Console.WriteLine(title);
-        Console.WriteLine();
-        Console.WriteLine("CONTENT:");
-        Console.WriteLine(content);
-        Console.WriteLine("============== END OPENAI INPUT ==============");
-
         ChatCompletion completion = await _chatClient.CompleteChatAsync(prompt);
 
         var json = CleanJson(completion.Content[0].Text);

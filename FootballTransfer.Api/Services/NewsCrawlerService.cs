@@ -11,10 +11,10 @@ public class NewsCrawlerService
     private readonly FootballTransferDbContext _context;
     private readonly HttpClient _httpClient;
 
-    public NewsCrawlerService(FootballTransferDbContext context)
+    public NewsCrawlerService(FootballTransferDbContext context, HttpClient httpClient)
     {
         _context = context;
-        _httpClient = new HttpClient();
+        _httpClient = httpClient;
     }
 
     public async Task<int> CrawlAndSaveAsync()

@@ -75,7 +75,7 @@ public class NewsController : ControllerBase
     [HttpGet("extracted-transfers")]
     public async Task<IActionResult> GetExtractedTransfersFromNews()
     {
-        var news = await _newsService.GetAllNewsAsync();
+        var news = await _newsService.GetExtractedTransfersAsync();
 
         var transfers = news
             .Where(n => !string.IsNullOrWhiteSpace(n.ExtractedPlayer))
@@ -104,7 +104,7 @@ public class NewsController : ControllerBase
     [HttpGet("latest-extracted-transfers")]
     public async Task<IActionResult> GetLatestExtractedTransfers()
     {
-        var news = await _newsService.GetAllNewsAsync();
+        var news = await _newsService.GetExtractedTransfersAsync(10);
 
         var latestTransfers = news
             .Where(n => !string.IsNullOrWhiteSpace(n.ExtractedPlayer))
@@ -140,18 +140,14 @@ public class NewsController : ControllerBase
             });
         }
 
-        var news = await _newsService.GetAllNewsAsync();
+        if (keyword.Length > 100)
+        {
+            return BadRequest(new { message = "Keyword must not exceed 100 characters." });
+        }
+
+        var news = await _newsService.SearchNewsAsync(keyword);
 
         var results = news
-            .Where(n =>
-                ContainsKeyword(n.Title, keyword) ||
-                ContainsKeyword(n.Content, keyword) ||
-                ContainsKeyword(n.AiSummary, keyword) ||
-                ContainsKeyword(n.ExtractedPlayer, keyword) ||
-                ContainsKeyword(n.ExtractedClub, keyword) ||
-                ContainsKeyword(n.FromClub, keyword) ||
-                ContainsKeyword(n.ToClub, keyword) ||
-                ContainsKeyword(n.TransferType, keyword))
             .OrderByDescending(n => n.PublishedAt)
             .Select(n => new
             {
@@ -177,9 +173,7 @@ public class NewsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var news = await _newsService.GetAllNewsAsync();
-
-        var item = news.FirstOrDefault(n => n.Id == id);
+        var item = await _newsService.GetNewsByIdAsync(id);
 
         if (item == null)
         {
@@ -190,11 +184,5 @@ public class NewsController : ControllerBase
         }
 
         return Ok(item);
-    }
-
-    private static bool ContainsKeyword(string? value, string keyword)
-    {
-        return !string.IsNullOrWhiteSpace(value) &&
-               value.Contains(keyword, StringComparison.OrdinalIgnoreCase);
     }
 }

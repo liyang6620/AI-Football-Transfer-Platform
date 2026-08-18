@@ -26,5 +26,13 @@ public class FootballTransferDbContext : DbContext
         modelBuilder.Entity<TransferNews>()
             .Property(n => n.EstimatedFee)
             .HasPrecision(18, 2);
+
+        modelBuilder.Entity<TransferNews>()
+            .HasIndex(n => n.Url)
+            .IsUnique();
+
+        modelBuilder.Entity<Transfer>()
+            .HasIndex(t => t.TransferNewsId)
+            .IsUnique();
     }
 }

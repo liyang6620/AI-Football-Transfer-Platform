@@ -1,5 +1,6 @@
 using FootballTransfer.Api.Data;
 using FootballTransfer.Api.Services;
+using FootballTransfer.Api.Middleware;
 using Microsoft.EntityFrameworkCore;
 
 namespace FootballTransfer.Api
@@ -12,15 +13,23 @@ namespace FootballTransfer.Api
 
             builder.Services.AddControllers();
 
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "ConnectionStrings:DefaultConnection is required. Set ConnectionStrings__DefaultConnection.");
+            }
+
             builder.Services.AddDbContext<FootballTransferDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(connectionString));
 
             builder.Services.AddScoped<NewsService>();
-            builder.Services.AddScoped<NewsCrawlerService>();
-            builder.Services.AddHttpClient();
+            builder.Services.AddHttpClient<NewsCrawlerService>(client =>
+                client.Timeout = TimeSpan.FromSeconds(20));
+            builder.Services.AddHttpClient<ArticleContentService>(client =>
+                client.Timeout = TimeSpan.FromSeconds(20));
             builder.Services.AddScoped<OpenAiAnalysisService>();
             builder.Services.AddHostedService<NewsBackgroundService>();
-            builder.Services.AddScoped<ArticleContentService>();
             builder.Services.AddOpenApi();
             builder.Services.AddScoped<AiAnalysisService>();
             builder.Services.AddCors(options =>
@@ -43,6 +52,7 @@ namespace FootballTransfer.Api
 
             app.UseHttpsRedirection();
             app.UseCors("Frontend");
+            app.UseMiddleware<AdminApiKeyMiddleware>();
             app.UseAuthorization();
 
             app.MapControllers();

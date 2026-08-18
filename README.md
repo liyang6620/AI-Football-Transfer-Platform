@@ -275,7 +275,12 @@ npm run dev
 OPENAI_API_KEY=your_api_key
 
 ConnectionStrings__DefaultConnection=your_postgresql_connection
+
+AdminApiKey=generate_a_long_random_secret
 ```
+
+Administrative endpoints under `/api/ai`, `/api/crawler`, and write operations
+under `/api/news` require the same value in the `X-Admin-Api-Key` request header.
 
 ### Frontend
 

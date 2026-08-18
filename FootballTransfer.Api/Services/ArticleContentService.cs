@@ -9,9 +9,9 @@ public class ArticleContentService
 {
     private readonly HttpClient _httpClient;
 
-    public ArticleContentService()
+    public ArticleContentService(HttpClient httpClient)
     {
-        _httpClient = new HttpClient();
+        _httpClient = httpClient;
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         );
