@@ -348,7 +348,9 @@ AdminApiKey=<long random value>
 ```
 
 Render automatically uses the repository's `Dockerfile` and listens on port
-`8080`. After deployment, verify `GET /api/transfers` returns HTTP 200.
+`8080`. The image enables polling-based .NET file watching to remain within
+the Render free container's `inotify` limits. After deployment, verify
+`GET /api/transfers` returns HTTP 200.
 
 ### 3. Deploy the Frontend to Cloudflare Pages
 
