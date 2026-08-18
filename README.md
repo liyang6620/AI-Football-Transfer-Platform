@@ -288,6 +288,119 @@ under `/api/news` require the same value in the `X-Admin-Api-Key` request header
 VITE_API_BASE_URL=https://football-transfer-api.onrender.com
 ```
 
+Never commit real database passwords or API keys. Configure them in the
+deployment platform's encrypted environment-variable settings.
+
+---
+
+## Free Deployment
+
+The live application uses free tiers from three providers:
+
+| Component | Provider | Plan | Public URL |
+| --- | --- | --- | --- |
+| React frontend | Cloudflare Pages | Free | https://ai-football-transfer-platform.pages.dev |
+| ASP.NET Core API | Render | Free web service | https://football-transfer-api.onrender.com |
+| PostgreSQL | Supabase | Free | Private database connection |
+
+No paid resource is required for a small portfolio deployment. Free-tier
+limits still apply: Render services spin down after inactivity and may take
+50 seconds or longer to wake, while inactive Supabase projects may be paused
+and need to be resumed from the Supabase dashboard.
+
+### 1. Create the Supabase Database
+
+1. Create a free Supabase project in a region close to the Render service.
+2. Open **Connect**, select the transaction pooler connection, and copy the
+   PostgreSQL connection details.
+3. Apply the Entity Framework migrations from a trusted local environment:
+
+```bash
+cd FootballTransfer.Api
+
+# PowerShell
+$env:ConnectionStrings__DefaultConnection="your_postgresql_connection"
+dotnet ef database update
+```
+
+Before applying `AddUniqueNewsIndexes`, remove any duplicate `TransferNews.Url`
+or `Transfers.TransferNewsId` values. The migration intentionally enforces one
+news record per URL and one transfer record per source article.
+
+### 2. Deploy the API to Render
+
+Create a free **Web Service** connected to this GitHub repository with these
+settings:
+
+```text
+Runtime: Docker
+Root Directory: FootballTransfer.Api
+Branch: main
+Instance Type: Free
+```
+
+Add these encrypted environment variables in Render:
+
+```text
+ConnectionStrings__DefaultConnection=<Supabase PostgreSQL connection>
+OPENAI_API_KEY=<OpenAI API key>
+AdminApiKey=<long random value>
+```
+
+Render automatically uses the repository's `Dockerfile` and listens on port
+`8080`. After deployment, verify `GET /api/transfers` returns HTTP 200.
+
+### 3. Deploy the Frontend to Cloudflare Pages
+
+Create a Pages project connected to the same repository:
+
+```text
+Framework preset: Vite
+Root directory: FootballTransfer.Frontend
+Build command: npm run build
+Build output directory: dist
+```
+
+Set the production environment variable:
+
+```text
+VITE_API_BASE_URL=https://football-transfer-api.onrender.com
+```
+
+Both Render and Cloudflare Pages automatically redeploy after changes are
+pushed to `main`.
+
+### Administrative Endpoints
+
+The following operations are intentionally unavailable without the Render
+`AdminApiKey` value:
+
+- all `/api/ai` endpoints
+- all `/api/crawler` endpoints
+- `GET /api/news/unprocessed`
+- non-GET requests under `/api/news`
+
+Send the key only from a trusted administration client:
+
+```bash
+curl -X POST \
+  -H "X-Admin-Api-Key: $ADMIN_API_KEY" \
+  https://football-transfer-api.onrender.com/api/crawler
+```
+
+Do not expose this key through a `VITE_` variable because Vite embeds those
+values into public browser bundles.
+
+### Free-Tier Troubleshooting
+
+- A slow first request usually means the Render free service is waking up.
+- PostgreSQL `tenant/user not found` errors usually mean the Supabase project
+  is paused. Resume it from the Supabase project dashboard.
+- A `401` response from an administrative endpoint means the
+  `X-Admin-Api-Key` header is missing or incorrect.
+- A `503` response from an administrative endpoint means `AdminApiKey` has not
+  been configured on Render.
+
 ---
 
 ## Future Improvements
