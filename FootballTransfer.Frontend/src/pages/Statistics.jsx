@@ -186,16 +186,15 @@ export default function Statistics() {
         <div className="statistics-page">
             <section className="statistics-hero">
                 <div>
-                    <span className="statistics-kicker">Market Intelligence Dashboard</span>
+                    <span className="statistics-kicker">Market overview</span>
                     <h1>Statistics</h1>
                     <p>
-                        Understand the transfer market through AI-extracted records,
-                        confidence scoring, fee intelligence and club activity.
+                        Review deal status, reported fees, source coverage and club activity.
                     </p>
                 </div>
 
                 <div className="statistics-score-card">
-                    <span>AI Confidence</span>
+                    <span>Extraction confidence</span>
                     <strong>{pct(computed.avgConfidence)}</strong>
                     <small>Average confidence score</small>
                 </div>
@@ -244,7 +243,7 @@ export default function Statistics() {
                 <div className="statistics-panel">
                     <div className="panel-head">
                         <div>
-                            <span>AI Quality</span>
+                            <span>Record quality</span>
                             <h2>Confidence Overview</h2>
                         </div>
                     </div>
@@ -276,7 +275,7 @@ export default function Statistics() {
                     <div className="panel-head">
                         <div>
                             <span>Financial View</span>
-                            <h2>Fee Intelligence</h2>
+                            <h2>Reported Fees</h2>
                         </div>
                     </div>
 

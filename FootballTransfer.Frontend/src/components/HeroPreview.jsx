@@ -7,10 +7,10 @@ export default function HeroPreview({ items = [], formatFee, getTransferBadge })
         <div className="hero-preview">
             <div className="preview-header">
                 <div>
-                    <span>Live Feed</span>
-                    <h3>Transfer Intelligence</h3>
+                    <span>Market feed</span>
+                    <h3>Latest records</h3>
                 </div>
-                <div className="live-dot">Live</div>
+                <div className="live-dot"><i /> Live</div>
             </div>
 
             <div className="preview-list">
@@ -36,7 +36,7 @@ export default function HeroPreview({ items = [], formatFee, getTransferBadge })
                             </div>
 
                             <div className="preview-confidence">
-                                <span>{confPct}% confidence</span>
+                                <span>{confPct}% extraction confidence</span>
                                 <div className="mini-track">
                                     <div style={{ width: `${confPct}%` }} />
                                 </div>

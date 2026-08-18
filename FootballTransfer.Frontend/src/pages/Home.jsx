@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchStats, fetchTransfers } from '../api/transferApi'
+import { ArrowRight, BarChart3, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import HeroPreview from '../components/HeroPreview'
 import '../styles/Home.css'
@@ -14,324 +15,142 @@ export default function Home() {
 
     useEffect(() => {
         let mounted = true
-
         async function load() {
             try {
                 setLoading(true)
-
-                const [s, t] = await Promise.all([
+                const [summary, transfers] = await Promise.all([
                     fetchStats().catch(() => null),
                     fetchTransfers().catch(() => [])
                 ])
-
                 if (!mounted) return
-
-                setStats(s)
-                setItems(t || [])
+                setStats(summary)
+                setItems(transfers || [])
             } catch (e) {
                 if (mounted) setError(e.message)
             } finally {
                 if (mounted) setLoading(false)
             }
         }
-
         load()
-
-        return () => {
-            mounted = false
-        }
+        return () => { mounted = false }
     }, [])
 
-    const latest = useMemo(() => {
-        return items
-            .slice()
-            .sort((a, b) => {
-                const da = new Date(a.date || a.publishedAt || a.published || 0).getTime()
-                const db = new Date(b.date || b.publishedAt || b.published || 0).getTime()
-                return db - da
-            })
-            .slice(0, 3)
-    }, [items])
+    const latest = useMemo(() => items.slice().sort((a, b) => {
+        const da = new Date(a.date || a.publishedAt || a.published || 0).getTime()
+        const db = new Date(b.date || b.publishedAt || b.published || 0).getTime()
+        return db - da
+    }).slice(0, 5), [items])
 
     function formatFee(fee, currency) {
         if (fee === 0) return 'Free'
         if (!fee) return 'Undisclosed'
-
         const cur = (currency || '').toUpperCase()
-
         if (cur === 'GBP' || cur === '£') return `£${fee}m`
         if (cur === 'EUR' || cur === '€') return `€${fee}m`
         if (cur === 'USD' || cur === '$') return `$${fee}m`
-
         return `${fee}m`
     }
 
     function getTransferBadge(type) {
-        const t = (type || '').toLowerCase()
-
-        if (t.includes('completed') || t.includes('official')) {
-            return { label: 'Official', css: 'badge-official' }
-        }
-
-        if (t.includes('rumour') || t.includes('rumor')) {
-            return { label: 'Rumour', css: 'badge-rumour' }
-        }
-
-        if (t.includes('contract')) {
-            return { label: 'Contract', css: 'badge-contract' }
-        }
-
-        if (t.includes('free')) {
-            return { label: 'Free', css: 'badge-free' }
-        }
-
+        const value = (type || '').toLowerCase()
+        if (value.includes('completed') || value.includes('official')) return { label: 'Official', css: 'badge-official' }
+        if (value.includes('rumour') || value.includes('rumor')) return { label: 'Rumour', css: 'badge-rumour' }
+        if (value.includes('contract')) return { label: 'Contract', css: 'badge-contract' }
+        if (value.includes('free')) return { label: 'Free', css: 'badge-free' }
         return { label: 'Unknown', css: 'badge-neutral' }
     }
 
     const statCards = [
-        { label: 'Total Transfers', value: stats?.totalTransfers ?? 0 },
-        { label: 'Official Deals', value: stats?.completedTransfers ?? 0 },
-        { label: 'Rumours', value: stats?.rumours ?? 0 },
-        { label: 'Contracts', value: stats?.contracts ?? 0 },
-        { label: 'Free Transfers', value: stats?.freeTransfers ?? 0 }
+        { label: 'Records tracked', value: stats?.totalTransfers ?? 0 },
+        { label: 'Official deals', value: stats?.completedTransfers ?? 0 },
+        { label: 'Active rumours', value: stats?.rumours ?? 0 },
+        { label: 'Contract updates', value: stats?.contracts ?? 0 },
+        { label: 'Free transfers', value: stats?.freeTransfers ?? 0 }
     ]
 
     const categories = [
-        {
-            title: 'Official Deals',
-            desc: 'Confirmed transfers extracted from trusted sources.',
-            link: '/transfers?cat=official'
-        },
-        {
-            title: 'Rumours',
-            desc: 'Track early market signals and potential moves.',
-            link: '/transfers?cat=rumours'
-        },
-        {
-            title: 'Contract Renewals',
-            desc: 'Monitor extensions, renewals and player commitments.',
-            link: '/transfers?cat=contracts'
-        },
-        {
-            title: 'Free Transfers',
-            desc: 'Follow zero-fee moves and free agent opportunities.',
-            link: '/transfers?cat=free'
-        }
+        { title: 'Official deals', desc: 'Completed and confirmed moves', link: '/transfers?cat=official', count: stats?.completedTransfers ?? 0 },
+        { title: 'Rumours', desc: 'Reported moves awaiting confirmation', link: '/transfers?cat=rumours', count: stats?.rumours ?? 0 },
+        { title: 'Contracts', desc: 'Renewals and extensions', link: '/transfers?cat=contracts', count: stats?.contracts ?? 0 },
+        { title: 'Free transfers', desc: 'Moves completed without a fee', link: '/transfers?cat=free', count: stats?.freeTransfers ?? 0 }
     ]
 
     return (
         <div className="home-page">
-            <section
-                className="home-hero"
-                style={{ backgroundImage: `url(${heroImg})` }}
-            >
+            <section className="home-hero" style={{ backgroundImage: `url(${heroImg})` }}>
                 <div className="hero-layer" />
-
                 <div className="hero-shell">
                     <div className="hero-copy">
-                        <span className="hero-label">AI-Powered Football Intelligence</span>
-
-                        <h1>
-                            Transform football news into structured transfer intelligence.
-                        </h1>
-
-                        <p>
-                            Automatically extract players, clubs, fees and transfer types from football
-                            news. Explore official deals, rumours and contract renewals in one clean platform.
-                        </p>
-
+                        <span className="hero-label"><i /> Transfer market coverage</span>
+                        <h1>Football moves,<br />without the noise.</h1>
+                        <p>Track confirmed deals, credible reports and contract updates in one structured market feed.</p>
                         <div className="hero-actions">
                             <button onClick={() => navigate('/transfers')} className="hero-primary">
-                                Explore Transfers
+                                Open transfer feed <ArrowRight size={17} />
                             </button>
-
                             <button onClick={() => navigate('/statistics')} className="hero-secondary">
-                                View Statistics
+                                <BarChart3 size={17} /> Market overview
                             </button>
                         </div>
                     </div>
-
-                    <HeroPreview
-                        items={latest}
-                        formatFee={formatFee}
-                        getTransferBadge={getTransferBadge}
-                    />
+                </div>
+                <div className="hero-status">
+                    <span><i /> Monitoring BBC Sport</span>
+                    <span>Structured records</span>
+                    <span>Updated automatically</span>
                 </div>
             </section>
 
             <main className="home-main">
-                {stats && (
-                    <section className="kpi-grid">
-                        {statCards.map((stat) => (
-                            <div className="kpi-card" key={stat.label}>
-                                <strong>{stat.value}</strong>
-                                <span>{stat.label}</span>
+                <section className="market-summary" aria-label="Market summary">
+                    {statCards.map((stat) => (
+                        <div className="kpi-card" key={stat.label}>
+                            <span>{stat.label}</span>
+                            <strong>{loading ? '—' : stat.value}</strong>
+                        </div>
+                    ))}
+                </section>
+
+                {error && <div className="home-error">Market data is temporarily unavailable.</div>}
+
+                <section className="home-data-grid">
+                    <div className="latest-section">
+                        <div className="section-head">
+                            <div>
+                                <span>Latest movement</span>
+                                <h2>Recently tracked</h2>
                             </div>
-                        ))}
-                    </section>
-                )}
-
-                {error && <div className="home-error">{error}</div>}
-                {loading && <div className="state-card">Loading market intelligence…</div>}
-
-                <section className="feature-section">
-                    <div className="section-head section-head-large">
-                        <div>
-                            <span>Why Football Transfer Intelligence</span>
-                            <h2>Built for modern football analytics</h2>
-                            <p>
-                                Football Transfer Intelligence transforms unstructured football news
-                                into searchable transfer data using AI extraction, confidence scoring
-                                and real-time market monitoring.
-                            </p>
+                            <Link to="/transfers" className="section-link">All transfers <ArrowRight size={15} /></Link>
                         </div>
+                        <HeroPreview items={latest} formatFee={formatFee} getTransferBadge={getTransferBadge} />
                     </div>
 
-                    <div className="feature-grid">
-                        <div className="feature-card">
-                            <span>01</span>
-                            <h3>AI Extraction</h3>
-                            <p>
-                                Automatically extracts player names, clubs, fees and transfer type
-                                from football news articles.
-                            </p>
+                    <aside className="category-section">
+                        <div className="section-head">
+                            <div>
+                                <span>Market views</span>
+                                <h2>Browse by status</h2>
+                            </div>
                         </div>
-
-                        <div className="feature-card">
-                            <span>02</span>
-                            <h3>Structured Database</h3>
-                            <p>
-                                Convert unstructured football news into searchable transfer records
-                                with consistent fields.
-                            </p>
+                        <div className="category-strip">
+                            {categories.map((category) => (
+                                <Link to={category.link} className="category-pill" key={category.title}>
+                                    <span className="category-count">{category.count}</span>
+                                    <span className="category-copy">
+                                        <strong>{category.title}</strong>
+                                        <small>{category.desc}</small>
+                                    </span>
+                                    <ChevronRight size={18} />
+                                </Link>
+                            ))}
                         </div>
-
-                        <div className="feature-card">
-                            <span>03</span>
-                            <h3>Confidence Scoring</h3>
-                            <p>
-                                Every record includes an AI confidence score to help evaluate the
-                                reliability of extracted information.
-                            </p>
-                        </div>
-
-                        <div className="feature-card">
-                            <span>04</span>
-                            <h3>Market Monitoring</h3>
-                            <p>
-                                Follow official deals, rumours, contract renewals and free transfers
-                                from one central dashboard.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="process-section">
-                    <div className="section-head section-head-large">
-                        <div>
-                            <span>How It Works</span>
-                            <h2>From football news to structured intelligence</h2>
-                            <p>
-                                The platform turns unstructured football articles into searchable,
-                                categorized and confidence-scored transfer records.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="process-grid">
-                        <div className="process-step">
-                            <b>01</b>
-                            <h3>Collect News</h3>
-                            <p>
-                                Fetch football articles from RSS feeds and trusted football news sources.
-                            </p>
-                        </div>
-
-                        <div className="process-step">
-                            <b>02</b>
-                            <h3>Extract Content</h3>
-                            <p>
-                                Parse full article content, title, source, URL and publish date.
-                            </p>
-                        </div>
-
-                        <div className="process-step">
-                            <b>03</b>
-                            <h3>Analyse with AI</h3>
-                            <p>
-                                Identify the main transfer event and extract structured transfer fields.
-                            </p>
-                        </div>
-
-                        <div className="process-step">
-                            <b>04</b>
-                            <h3>Explore Insights</h3>
-                            <p>
-                                Browse transfers, categories, confidence scores and market statistics.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="category-section">
-                    <div className="section-head">
-                        <div>
-                            <span>Browse Intelligence</span>
-                            <h2>Transfer Categories</h2>
-                        </div>
-
-                        <Link to="/transfers" className="section-link">
-                            View all
-                        </Link>
-                    </div>
-
-                    <div className="category-strip">
-                        {categories.map((cat) => (
-                            <Link to={cat.link} className="category-pill" key={cat.title}>
-                                <strong>{cat.title}</strong>
-                                <span>{cat.desc}</span>
-                            </Link>
-                        ))}
-                    </div>
-                </section>
-
-                <section className="capability-section">
-                    <div className="capability-copy">
-                        <span>Platform Capabilities</span>
-                        <h2>Designed for clean football transfer research</h2>
-                        <p>
-                            Search across players, clubs and transfer types. Compare confidence scores,
-                            monitor fee information and explore category-based transfer intelligence.
-                        </p>
-                    </div>
-
-                    <div className="capability-list">
-                        <div>
-                            <strong>Player & Club Search</strong>
-                            <span>Find transfer records by player name, source club or destination club.</span>
-                        </div>
-
-                        <div>
-                            <strong>Category Filtering</strong>
-                            <span>Separate official deals, rumours, renewals and free transfers.</span>
-                        </div>
-
-                        <div>
-                            <strong>Fee Intelligence</strong>
-                            <span>Identify known fees, free transfers and undisclosed deals.</span>
-                        </div>
-
-                        <div>
-                            <strong>Statistics Dashboard</strong>
-                            <span>Analyse transfer types, confidence quality and club activity.</span>
-                        </div>
-                    </div>
+                    </aside>
                 </section>
             </main>
 
             <footer className="home-footer">
-                <strong>Football Transfer Intelligence</strong>
-                <span>AI-powered football transfer monitoring platform.</span>
+                <strong>Transfer Index</strong>
+                <span>Independent football market monitoring.</span>
             </footer>
         </div>
     )

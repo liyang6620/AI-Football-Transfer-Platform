@@ -1,86 +1,63 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { Search } from 'lucide-react'
+
+const links = [
+    { to: '/', label: 'Overview' },
+    { to: '/transfers', label: 'Transfers' },
+    { to: '/statistics', label: 'Market data' },
+    { to: '/about', label: 'Methodology' }
+]
 
 export default function Navbar() {
-    const [q, setQ] = useState('')
+    const [query, setQuery] = useState('')
     const navigate = useNavigate()
 
-    function onSearch(e) {
-        e.preventDefault()
-
-        const keyword = q.trim()
-
+    function onSearch(event) {
+        event.preventDefault()
+        const keyword = query.trim()
         if (!keyword) return
-
-        // 跳转
         navigate(`/transfers?search=${encodeURIComponent(keyword)}`)
-
-        // 清空搜索框
-        setQ('')
+        setQuery('')
     }
 
     return (
         <header className="site-nav">
             <div className="nav-inner">
+                <NavLink to="/" className="brand-wrap" aria-label="Transfer Index home">
+                    <span className="brand-mark">TI</span>
+                    <span className="brand-content">
+                        <strong className="brand-title">Transfer Index</strong>
+                        <span className="brand-subtitle">Football market monitor</span>
+                    </span>
+                </NavLink>
 
-                <Link to="/" className="brand-wrap">
-                    <div className="brand-mark">FTI</div>
-
-                    <div className="brand-content">
-                        <div className="brand-title">
-                            Football Transfer Intelligence
-                        </div>
-
-                        <div className="brand-subtitle">
-                            AI-powered transfer monitoring
-                        </div>
-                    </div>
-                </Link>
-
-                <nav className="nav-links">
-                    <Link to="/" className="nav-link">Home</Link>
-                    <Link to="/transfers" className="nav-link">Transfers</Link>
-                    <Link to="/statistics" className="nav-link">Statistics</Link>
-                    <Link to="/about" className="nav-link">About</Link>
+                <nav className="nav-links" aria-label="Primary navigation">
+                    {links.map((link) => (
+                        <NavLink
+                            key={link.to}
+                            to={link.to}
+                            end={link.to === '/'}
+                            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                        >
+                            {link.label}
+                        </NavLink>
+                    ))}
                 </nav>
 
-                <form className="nav-search" onSubmit={onSearch}>
-                    <svg
-                        className="search-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                    >
-                        <path
-                            d="M21 21L16.5 16.5"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                        />
-
-                        <circle
-                            cx="11"
-                            cy="11"
-                            r="7"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                        />
-                    </svg>
-
+                <form className="nav-search" onSubmit={onSearch} role="search">
+                    <Search className="search-icon" aria-hidden="true" />
                     <input
                         className="search-input"
-                        placeholder="Search players, clubs, transfers..."
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
+                        aria-label="Search transfers"
+                        placeholder="Player or club"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
                     />
-
-                    <button
-                        type="submit"
-                        className="nav-search-btn"
-                    >
-                        Search
+                    <button type="submit" className="nav-search-btn" aria-label="Submit search">
+                        <Search size={16} />
                     </button>
                 </form>
-
             </div>
         </header>
     )

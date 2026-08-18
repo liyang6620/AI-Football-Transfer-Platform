@@ -196,14 +196,13 @@ export default function Transfers() {
             <section className="transfers-hero">
                 <div>
                     <span className="transfers-kicker">
-                        {isGlobalSearch ? 'Global Transfer Search' : 'Transfer Intelligence Feed'}
+                        {isGlobalSearch ? 'Search results' : 'Transfer market'}
                     </span>
 
                     <h1>Transfers</h1>
 
                     <p>
-                        Browse AI-extracted football transfer intelligence across official deals,
-                        rumours, renewals and free transfers.
+                        Browse confirmed deals, reported moves, contract updates and free transfers.
                     </p>
                 </div>
 

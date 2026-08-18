@@ -4,86 +4,75 @@ export default function About() {
     return (
         <div className="about-page">
             <section className="about-hero">
-                <span className="about-kicker">Project Overview</span>
-                <h1>About Football Transfer Intelligence</h1>
+                <span className="about-kicker">Methodology</span>
+                <h1>How Transfer Index builds each record</h1>
                 <p>
-                    An AI-powered football transfer monitoring platform that collects football
-                    news, extracts transfer events, and turns articles into structured market intelligence.
+                    A transparent view of the source, classification rules and limitations
+                    behind the transfer market feed.
                 </p>
             </section>
 
             <section className="about-grid">
-                <div className="about-card about-large">
-                    <span>01</span>
-                    <h2>What this platform does</h2>
+                <article className="about-card about-large">
+                    <span>Source</span>
+                    <h2>BBC Sport reporting</h2>
                     <p>
-                        The platform automatically collects football news, extracts full article
-                        content, uses AI to identify transfer-related events, and stores structured
-                        records including player, source club, destination club, transfer type,
-                        fee and confidence score.
+                        The monitor reads the BBC Sport football RSS feed and links every record
+                        back to its source article. It is a focused news monitor, not a complete
+                        database of every transfer worldwide.
                     </p>
-                </div>
+                </article>
 
-                <div className="about-card">
-                    <span>02</span>
-                    <h2>Core Features</h2>
-                    <ul>
-                        <li>AI transfer event extraction</li>
-                        <li>Official deals and rumour classification</li>
-                        <li>Transfer fee and club detection</li>
-                        <li>Confidence scoring</li>
-                        <li>Search, filtering and statistics dashboard</li>
-                    </ul>
-                </div>
+                <article className="about-card">
+                    <span>Classification</span>
+                    <h2>Evidence before status</h2>
+                    <p>
+                        A move is marked official only when the report describes club confirmation.
+                        Agreements, medicals and expected signings remain rumours until confirmed.
+                    </p>
+                </article>
 
-                <div className="about-card">
-                    <span>03</span>
-                    <h2>Technology Stack</h2>
-                    <ul>
-                        <li>React + Vite frontend</li>
-                        <li>ASP.NET Core Web API</li>
-                        <li>SQL Server database</li>
-                        <li>Entity Framework Core</li>
-                        <li>OpenAI API analysis pipeline</li>
-                    </ul>
-                </div>
+                <article className="about-card">
+                    <span>Confidence</span>
+                    <h2>A quality signal, not a fact</h2>
+                    <p>
+                        Confidence measures how clearly an article supports the extracted player,
+                        route, fee and status. It should be read alongside the original source.
+                    </p>
+                </article>
             </section>
 
             <section className="about-flow">
                 <div className="section-head">
-                    <span>System Design</span>
-                    <h2>Architecture Flow</h2>
+                    <span>Processing</span>
+                    <h2>From report to record</h2>
                 </div>
 
                 <div className="flow-steps">
                     <div className="flow-step">
                         <b>1</b>
-                        <strong>News Collection</strong>
-                        <p>Fetch football articles from RSS feeds and external news sources.</p>
+                        <strong>Collect</strong>
+                        <p>Read new football stories from the source feed.</p>
                     </div>
-
                     <div className="flow-step">
                         <b>2</b>
-                        <strong>Article Parsing</strong>
-                        <p>Extract clean article title, content, source, URL and publish date.</p>
+                        <strong>Parse</strong>
+                        <p>Retrieve and clean the article text.</p>
                     </div>
-
                     <div className="flow-step">
                         <b>3</b>
-                        <strong>AI Analysis</strong>
-                        <p>Use AI to identify the main transfer event and extract structured fields.</p>
+                        <strong>Structure</strong>
+                        <p>Extract the player, clubs, fee and reported status.</p>
                     </div>
-
                     <div className="flow-step">
                         <b>4</b>
-                        <strong>Data Storage</strong>
-                        <p>Store processed transfer records in SQL Server through Entity Framework.</p>
+                        <strong>Validate</strong>
+                        <p>Apply status, fee and confidence safeguards.</p>
                     </div>
-
                     <div className="flow-step">
                         <b>5</b>
-                        <strong>Frontend Intelligence</strong>
-                        <p>Present searchable transfer feeds, categories, detail pages and statistics.</p>
+                        <strong>Publish</strong>
+                        <p>Store the record in PostgreSQL and expose its source.</p>
                     </div>
                 </div>
             </section>

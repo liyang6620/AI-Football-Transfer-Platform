@@ -212,7 +212,7 @@ export default function TransferDetail() {
                 </div>
 
                 <div className="confidence-card">
-                    <span>AI Confidence</span>
+                    <span>Extraction confidence</span>
 
                     <strong>
                         {detail.confidencePercent !== null ? `${detail.confidencePercent}%` : 'N/A'}
@@ -222,15 +222,15 @@ export default function TransferDetail() {
                         <div style={{ width: `${detail.confidencePercent ?? 0}%` }} />
                     </div>
 
-                    <p>Reliability score generated from AI extraction.</p>
+                    <p>How confidently the source article maps to this record.</p>
                 </div>
             </section>
 
             <section className="detail-content-grid">
                 <main className="story-column">
                     <section className="detail-panel story-card">
-                        <span className="panel-kicker">AI Summary</span>
-                        <h2>Transfer Intelligence Summary</h2>
+                        <span className="panel-kicker">Source summary</span>
+                        <h2>What the report says</h2>
                         <p>{detail.summary}</p>
                     </section>
 

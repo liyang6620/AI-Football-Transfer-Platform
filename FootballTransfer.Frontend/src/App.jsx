@@ -6,12 +6,13 @@ import CategoryTransfers from './pages/CategoryTransfers'
 import TransferDetail from './pages/TransferDetail'
 import Statistics from './pages/Statistics'
 import About from './pages/About'
+import './styles/professional.css'
 
 export default function App() {
   return (
     <div>
       <Navbar />
-      <main style={{ marginTop: 12 }}>
+      <main>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/transfers" element={<Transfers />} />
