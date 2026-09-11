@@ -14,7 +14,7 @@ public class CrawlerController : ControllerBase
         _crawler = crawler;
     }
 
-    [HttpGet]
+    [HttpPost("crawl")]
     public async Task<IActionResult> Crawl()
     {
         var added = await _crawler.CrawlAndSaveAsync();

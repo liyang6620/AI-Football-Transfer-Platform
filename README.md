@@ -27,7 +27,7 @@ https://football-transfer-api.onrender.com
 ## System Architecture
 
 ```
-BBC Sport RSS Feed
+BBC Sport RSS + Guardian RSS + Google News RSS
           │
           ▼
 News Crawler Service
@@ -63,9 +63,11 @@ Each component is designed independently to improve maintainability and scalabil
 
 ### Automated News Collection
 
-- Periodically crawl the latest football news from BBC Sport RSS feeds
+- Periodically crawl free football news feeds from BBC Sport, The Guardian and Google News
 - Download complete article content instead of RSS summaries
+- Filter likely transfer stories before AI processing
 - Avoid duplicate articles using URL comparison
+- Continue processing when one feed is temporarily unavailable
 - Automatically schedule crawling through a background service
 
 ### AI-powered Information Extraction
@@ -215,6 +217,17 @@ For every article, the backend performs the following steps:
 8. Save results into PostgreSQL
 9. Return data through REST API
 
+The AI boundary is treated as untrusted input: empty or oversized articles are
+handled safely, JSON parsing failures fall back to an `Unknown` result, and
+transfer types, currencies, fees, confidence scores, and summary length are
+validated before persistence.
+
+Confidence is evidence-based rather than type-based. The model scores current-
+event clarity, entity specificity, source language, and concrete deal details,
+then applies a penalty for speculative wording. Scores are returned to two
+decimal places so records reflect meaningful differences between official
+announcements, detailed reports, and weak rumours.
+
 ---
 
 ## REST API
@@ -223,8 +236,6 @@ Example endpoints
 
 ```
 GET /api/news
-
-GET /api/news/latest-transfers
 
 GET /api/news/search
 
@@ -251,7 +262,17 @@ git clone https://github.com/liyang6620/AI-Football-Transfer-Platform.git
 cd FootballTransfer.Api
 
 dotnet restore
+```
 
+Set the required backend configuration before starting the API:
+
+```powershell
+$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=football_transfer;Username=postgres;Password=postgres"
+$env:OPENAI_API_KEY="your_api_key"
+$env:AdminApiKey="generate_a_long_random_secret"
+```
+
+```bash
 dotnet run
 ```
 
@@ -384,10 +405,15 @@ The following operations are intentionally unavailable without the Render
 
 Send the key only from a trusted administration client:
 
+To rebuild all derived transfer records with the current AI rules, use the
+admin-only `POST /api/ai/reprocess-all` endpoint. It clears the derived
+`Transfers` rows, re-evaluates every news item, and recreates only records that
+still pass the current validation rules.
+
 ```bash
 curl -X POST \
   -H "X-Admin-Api-Key: $ADMIN_API_KEY" \
-  https://football-transfer-api.onrender.com/api/crawler
+  https://football-transfer-api.onrender.com/api/crawler/crawl
 ```
 
 Do not expose this key through a `VITE_` variable because Vite embeds those

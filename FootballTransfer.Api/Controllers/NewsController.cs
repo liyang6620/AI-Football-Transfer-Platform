@@ -1,5 +1,6 @@
 ﻿using FootballTransfer.Api.Models;
 using FootballTransfer.Api.Services;
+using FootballTransfer.Api.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FootballTransfer.Api.Controllers;
@@ -27,8 +28,22 @@ public class NewsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(TransferNews news)
+    public async Task<IActionResult> Create(CreateNewsRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Url))
+        {
+            return BadRequest(new { message = "Title and URL are required." });
+        }
+
+        var news = new TransferNews
+        {
+            Title = request.Title.Trim(),
+            Content = request.Content?.Trim() ?? string.Empty,
+            Source = request.Source?.Trim() ?? string.Empty,
+            Url = request.Url.Trim(),
+            PublishedAt = request.PublishedAt == default ? DateTime.UtcNow : request.PublishedAt
+        };
+
         var createdNews = await _newsService.CreateNewsAsync(news);
         return Ok(createdNews);
     }

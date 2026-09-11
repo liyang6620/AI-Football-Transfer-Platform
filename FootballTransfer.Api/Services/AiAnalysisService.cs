@@ -9,15 +9,18 @@ public class AiAnalysisService
     private readonly FootballTransferDbContext _context;
     private readonly OpenAiAnalysisService _openAiService;
     private readonly ArticleContentService _articleContentService;
+    private readonly ILogger<AiAnalysisService> _logger;
 
     public AiAnalysisService(
         FootballTransferDbContext context,
         OpenAiAnalysisService openAiService,
-        ArticleContentService articleContentService)
+        ArticleContentService articleContentService,
+        ILogger<AiAnalysisService> logger)
     {
         _context = context;
         _openAiService = openAiService;
         _articleContentService = articleContentService;
+        _logger = logger;
     }
 
     public async Task<bool> ProcessNewsAsync(int id)
@@ -51,15 +54,38 @@ public class AiAnalysisService
                 await ProcessSingleNews(news);
                 processedCount++;
             }
-            catch
+            catch (Exception ex)
             {
-                MarkAsFailed(news);
+                MarkAsFailed(news, ex);
             }
         }
 
         await _context.SaveChangesAsync();
 
         return processedCount;
+    }
+
+    public async Task<int> ReprocessAllAsync()
+    {
+        // Transfers are derived from AI output. Rebuild them from scratch so that
+        // records which are no longer valid are removed instead of lingering.
+        _context.Transfers.RemoveRange(await _context.Transfers.ToListAsync());
+        var newsItems = await _context.TransferNews.ToListAsync();
+        foreach (var news in newsItems)
+        {
+            news.IsProcessed = false;
+            news.AiSummary = null;
+            news.ExtractedPlayer = null;
+            news.ExtractedClub = null;
+            news.FromClub = null;
+            news.ToClub = null;
+            news.TransferType = null;
+            news.EstimatedFee = null;
+            news.Confidence = null;
+        }
+
+        await _context.SaveChangesAsync();
+        return await ProcessAllAsync();
     }
 
     public async Task<int> ProcessUnprocessedLimitAsync(int limit)
@@ -79,9 +105,9 @@ public class AiAnalysisService
                 await ProcessSingleNews(news);
                 processedCount++;
             }
-            catch
+            catch (Exception ex)
             {
-                MarkAsFailed(news);
+                MarkAsFailed(news, ex);
             }
         }
 
@@ -241,9 +267,10 @@ public class AiAnalysisService
         news.IsProcessed = true;
     }
 
-    private static void MarkAsFailed(TransferNews news)
+    private void MarkAsFailed(TransferNews news, Exception exception)
     {
-        news.AiSummary = "AI processing failed.";
+        _logger.LogError(exception, "Failed to process news item {NewsId} from {Url}.", news.Id, news.Url);
+        news.AiSummary = "AI processing failed; it will be retried on the next scheduled run.";
         news.ExtractedPlayer = null;
         news.ExtractedClub = null;
         news.FromClub = null;
@@ -251,7 +278,8 @@ public class AiAnalysisService
         news.TransferType = "Processing Failed";
         news.EstimatedFee = null;
         news.Confidence = 0;
-        news.IsProcessed = true;
+        // Keep transient failures pending so the next scheduled run can retry them.
+        news.IsProcessed = false;
     }
 
     private static bool IsTransferRelated(string title, string content)

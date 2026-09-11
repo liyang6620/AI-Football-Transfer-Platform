@@ -8,10 +8,12 @@ namespace FootballTransfer.Api.Services;
 public class ArticleContentService
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<ArticleContentService> _logger;
 
-    public ArticleContentService(HttpClient httpClient)
+    public ArticleContentService(HttpClient httpClient, ILogger<ArticleContentService> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         );
@@ -52,8 +54,9 @@ public class ArticleContentService
 
             return text;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Unable to extract article content from {Url}.", url);
             return string.Empty;
         }
     }

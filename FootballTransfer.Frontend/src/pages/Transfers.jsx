@@ -100,7 +100,8 @@ export default function Transfers() {
                 const player = (it.player || it.playerName || it.title || '').toString().toLowerCase()
                 const from = (it.fromClub || it.from || it.clubFrom || '').toString().toLowerCase()
                 const to = (it.toClub || it.to || it.clubTo || '').toString().toLowerCase()
-                const title = (it.title || it.headline || '').toString().toLowerCase()
+                const title = (it.title || it.newsTitle || it.headline || '').toString().toLowerCase()
+                const source = (it.newsSource || it.source || '').toString().toLowerCase()
                 const type = (it.transferType || it.type || '').toString().toLowerCase()
                 const fee = (it.estimatedFee ?? it.fee ?? '').toString().toLowerCase()
 
@@ -109,6 +110,7 @@ export default function Transfers() {
                     from.includes(q) ||
                     to.includes(q) ||
                     title.includes(q) ||
+                    source.includes(q) ||
                     type.includes(q) ||
                     fee.includes(q)
                 )

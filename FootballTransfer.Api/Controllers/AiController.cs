@@ -60,4 +60,16 @@ public class AiController : ControllerBase
             processed = processedCount
         });
     }
+
+    [HttpPost("reprocess-all")]
+    public async Task<IActionResult> ReprocessAll()
+    {
+        var processedCount = await _aiAnalysisService.ReprocessAllAsync();
+
+        return Ok(new
+        {
+            message = "All news was reprocessed with the current AI rules.",
+            processed = processedCount
+        });
+    }
 }
