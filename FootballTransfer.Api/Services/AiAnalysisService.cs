@@ -88,6 +88,62 @@ public class AiAnalysisService
         return await ProcessAllAsync();
     }
 
+    public async Task<(int Normalized, int DuplicatesRemoved)> NormalizeClubNamesAsync()
+    {
+        var normalized = 0;
+        var newsItems = await _context.TransferNews.ToListAsync();
+        foreach (var news in newsItems)
+        {
+            normalized += NormalizeClubField(news.ExtractedClub, value => news.ExtractedClub = value);
+            normalized += NormalizeClubField(news.FromClub, value => news.FromClub = value);
+            normalized += NormalizeClubField(news.ToClub, value => news.ToClub = value);
+        }
+
+        var transfers = await _context.Transfers
+            .OrderByDescending(t => t.Confidence)
+            .ThenByDescending(t => t.PublishedAt)
+            .ToListAsync();
+
+        foreach (var transfer in transfers)
+        {
+            normalized += NormalizeClubField(transfer.FromClub, value => transfer.FromClub = value);
+            normalized += NormalizeClubField(transfer.ToClub, value => transfer.ToClub = value);
+        }
+
+        var kept = new List<Transfer>();
+        var duplicatesRemoved = 0;
+        foreach (var transfer in transfers)
+        {
+            var duplicate = kept.Any(existing =>
+                ClubNameNormalizer.TextKey(existing.PlayerName) == ClubNameNormalizer.TextKey(transfer.PlayerName) &&
+                ClubNameNormalizer.Key(existing.FromClub) == ClubNameNormalizer.Key(transfer.FromClub) &&
+                ClubNameNormalizer.Key(existing.ToClub) == ClubNameNormalizer.Key(transfer.ToClub) &&
+                string.Equals(existing.TransferType, transfer.TransferType, StringComparison.OrdinalIgnoreCase) &&
+                Math.Abs((existing.PublishedAt - transfer.PublishedAt).TotalDays) <= 14);
+
+            if (duplicate)
+            {
+                _context.Transfers.Remove(transfer);
+                duplicatesRemoved++;
+            }
+            else
+            {
+                kept.Add(transfer);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return (normalized, duplicatesRemoved);
+    }
+
+    private static int NormalizeClubField(string? current, Action<string?> assign)
+    {
+        var normalized = ClubNameNormalizer.Normalize(current);
+        if (string.Equals(current, normalized, StringComparison.Ordinal)) return 0;
+        assign(normalized);
+        return 1;
+    }
+
     public async Task<int> ProcessUnprocessedLimitAsync(int limit)
     {
         var unprocessedNews = await _context.TransferNews
@@ -139,9 +195,9 @@ public class AiAnalysisService
 
         news.AiSummary = aiResult.Summary;
         news.ExtractedPlayer = aiResult.Player;
-        news.ExtractedClub = aiResult.Club;
-        news.FromClub = aiResult.FromClub;
-        news.ToClub = aiResult.ToClub;
+        news.ExtractedClub = ClubNameNormalizer.Normalize(aiResult.Club);
+        news.FromClub = ClubNameNormalizer.Normalize(aiResult.FromClub);
+        news.ToClub = ClubNameNormalizer.Normalize(aiResult.ToClub);
         news.TransferType = aiResult.TransferType;
         news.EstimatedFee = aiResult.EstimatedFee;
         news.Confidence = aiResult.Confidence;
@@ -156,7 +212,7 @@ public class AiAnalysisService
             && !string.IsNullOrWhiteSpace(news.ExtractedClub)
             && IsValidTransferType(news.TransferType))
         {
-            news.ToClub = news.ExtractedClub;
+            news.ToClub = ClubNameNormalizer.Normalize(news.ExtractedClub);
         }
 
         if (string.IsNullOrWhiteSpace(news.ExtractedPlayer)
@@ -198,11 +254,39 @@ public class AiAnalysisService
             return;
         }
 
-        var exists = await _context.Transfers
-            .AnyAsync(t => t.TransferNewsId == news.Id);
+        var existingForNews = await _context.Transfers
+            .FirstOrDefaultAsync(t => t.TransferNewsId == news.Id);
 
-        if (exists)
+        if (existingForNews != null)
         {
+            return;
+        }
+
+        var windowStart = news.PublishedAt.AddDays(-14);
+        var windowEnd = news.PublishedAt.AddDays(14);
+        var possibleDuplicates = await _context.Transfers
+            .Where(t => t.TransferType == news.TransferType &&
+                        t.PublishedAt >= windowStart && t.PublishedAt <= windowEnd)
+            .ToListAsync();
+
+        var duplicate = possibleDuplicates.FirstOrDefault(t =>
+            ClubNameNormalizer.TextKey(t.PlayerName) == ClubNameNormalizer.TextKey(news.ExtractedPlayer) &&
+            ClubNameNormalizer.Key(t.FromClub) == ClubNameNormalizer.Key(news.FromClub) &&
+            ClubNameNormalizer.Key(t.ToClub) == ClubNameNormalizer.Key(news.ToClub));
+
+        if (duplicate != null)
+        {
+            if ((news.Confidence ?? 0) > (duplicate.Confidence ?? 0))
+            {
+                duplicate.PlayerName = news.ExtractedPlayer?.Trim();
+                duplicate.FromClub = ClubNameNormalizer.Normalize(news.FromClub);
+                duplicate.ToClub = ClubNameNormalizer.Normalize(news.ToClub);
+                duplicate.EstimatedFee = news.EstimatedFee;
+                duplicate.FeeCurrency = aiResult.FeeCurrency;
+                duplicate.Confidence = news.Confidence;
+                duplicate.TransferNewsId = news.Id;
+                duplicate.PublishedAt = news.PublishedAt;
+            }
             return;
         }
 
@@ -213,8 +297,8 @@ public class AiAnalysisService
         var transfer = new Transfer
         {
             PlayerName = news.ExtractedPlayer,
-            FromClub = news.FromClub,
-            ToClub = news.ToClub,
+            FromClub = ClubNameNormalizer.Normalize(news.FromClub),
+            ToClub = ClubNameNormalizer.Normalize(news.ToClub),
             TransferType = news.TransferType,
             EstimatedFee = news.TransferType == "Free Transfer" ? 0 : news.EstimatedFee,
             FeeCurrency = feeCurrency,

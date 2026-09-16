@@ -72,4 +72,15 @@ public class AiController : ControllerBase
             processed = processedCount
         });
     }
+
+    [HttpPost("normalize-clubs")]
+    public async Task<IActionResult> NormalizeClubs()
+    {
+        var result = await _aiAnalysisService.NormalizeClubNamesAsync();
+        return Ok(new
+        {
+            normalizedFields = result.Normalized,
+            duplicatesRemoved = result.DuplicatesRemoved
+        });
+    }
 }
