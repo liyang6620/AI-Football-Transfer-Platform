@@ -4,42 +4,61 @@ export default function About() {
     return (
         <div className="about-page">
             <section className="about-hero">
-                <span className="about-kicker">Methodology</span>
-                <h1>How Transfer Index builds each record</h1>
-                <p>
-                    A transparent view of the source, classification rules and limitations
-                    behind the transfer market feed.
-                </p>
+                <div className="about-hero-inner">
+                    <span className="about-kicker">Methodology</span>
+                    <h1>How Transfer Index builds each record</h1>
+                    <p>
+                        From free news feeds to a validated market record: the sources,
+                        safeguards and evidence rules behind every result.
+                    </p>
+                </div>
             </section>
 
             <section className="about-grid">
-                <article className="about-card about-large">
-                    <span>Source</span>
-                    <h2>BBC Sport reporting</h2>
+                <article className="about-card">
+                    <span>Sources</span>
+                    <h2>Three free news feeds</h2>
                     <p>
-                        The monitor reads the BBC Sport football RSS feed and links every record
-                        back to its source article. It is a focused news monitor, not a complete
-                        database of every transfer worldwide.
+                        The monitor reads BBC Sport, The Guardian Transfer Window and Google News
+                        RSS feeds. Each result keeps a link to the original report and its publisher.
+                    </p>
+                </article>
+
+                <article className="about-card">
+                    <span>Deduplication</span>
+                    <h2>One report, one candidate</h2>
+                    <p>
+                        Tracking parameters are removed from URLs, titles are normalized and duplicate
+                        stories are filtered before any AI request is made.
                     </p>
                 </article>
 
                 <article className="about-card">
                     <span>Classification</span>
-                    <h2>Evidence before status</h2>
+                    <h2>Confirmation sets the status</h2>
                     <p>
-                        A move is marked official only when the report describes club confirmation.
-                        Agreements, medicals and expected signings remain rumours until confirmed.
+                        Only an explicit club announcement qualifies as completed. Agreements,
+                        medicals and expected signings remain rumours until officially confirmed.
                     </p>
                 </article>
+            </section>
 
-                <article className="about-card">
-                    <span>Confidence</span>
-                    <h2>A quality signal, not a fact</h2>
+            <section className="confidence-method">
+                <div className="confidence-copy">
+                    <span>Confidence model</span>
+                    <h2>Evidence scored across five dimensions</h2>
                     <p>
-                        Confidence measures how clearly an article supports the extracted player,
-                        route, fee and status. It should be read alongside the original source.
+                        Confidence describes the strength of evidence in the article, not the
+                        probability that a transfer will eventually happen. Always verify the source.
                     </p>
-                </article>
+                </div>
+                <div className="confidence-rubric" aria-label="Confidence scoring rubric">
+                    <div><strong>20</strong><span>Current-event clarity</span></div>
+                    <div><strong>20</strong><span>Entity specificity</span></div>
+                    <div><strong>25</strong><span>Source language</span></div>
+                    <div><strong>20</strong><span>Concrete evidence</span></div>
+                    <div><strong>-15</strong><span>Uncertainty penalty</span></div>
+                </div>
             </section>
 
             <section className="about-flow">
@@ -52,30 +71,40 @@ export default function About() {
                     <div className="flow-step">
                         <b>1</b>
                         <strong>Collect</strong>
-                        <p>Read new football stories from the source feed.</p>
+                        <p>Read new stories from three free RSS sources.</p>
                     </div>
                     <div className="flow-step">
                         <b>2</b>
-                        <strong>Parse</strong>
-                        <p>Retrieve and clean the article text.</p>
+                        <strong>Filter</strong>
+                        <p>Keep likely transfer stories and remove duplicates.</p>
                     </div>
                     <div className="flow-step">
                         <b>3</b>
-                        <strong>Structure</strong>
-                        <p>Extract the player, clubs, fee and reported status.</p>
+                        <strong>Parse</strong>
+                        <p>Retrieve and clean the original article text.</p>
                     </div>
                     <div className="flow-step">
                         <b>4</b>
-                        <strong>Validate</strong>
-                        <p>Apply status, fee and confidence safeguards.</p>
+                        <strong>Extract</strong>
+                        <p>Identify the player, route, fee and event status.</p>
                     </div>
                     <div className="flow-step">
                         <b>5</b>
+                        <strong>Validate</strong>
+                        <p>Apply type, fee, currency and confidence safeguards.</p>
+                    </div>
+                    <div className="flow-step">
+                        <b>6</b>
                         <strong>Publish</strong>
-                        <p>Store the record in PostgreSQL and expose its source.</p>
+                        <p>Store validated records in PostgreSQL with source links.</p>
                     </div>
                 </div>
             </section>
+
+            <p className="about-note">
+                Collection runs every 30 days to control processing cost. Transfer Index is a
+                monitored news dataset, not an authoritative registry of every global transfer.
+            </p>
         </div>
     )
 }
