@@ -1,5 +1,7 @@
 # AI Football Transfer Platform
 
+[![CI](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## Overview
 
 AI Football Transfer Platform is a full-stack web application that automatically collects football transfer news, extracts structured transfer information using Large Language Models, and presents the results through an interactive dashboard.
