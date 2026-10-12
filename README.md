@@ -247,8 +247,9 @@ GET /api/transfers/stats
 
 `/health` is a process-level liveness check used by the hosting platform.
 `/ready` additionally verifies PostgreSQL connectivity and confirms that all
-Entity Framework migrations have been applied. The API returns structured
-problem details for unhandled server errors.
+Entity Framework migrations have been applied. Database dependency failures
+return HTTP 503 with a `Retry-After` header, while other unhandled server
+errors use structured problem details.
 
 ---
 

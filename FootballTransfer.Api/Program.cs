@@ -1,4 +1,5 @@
 using FootballTransfer.Api.Data;
+using FootballTransfer.Api.Infrastructure;
 using FootballTransfer.Api.Services;
 using FootballTransfer.Api.Middleware;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ namespace FootballTransfer.Api
 
             builder.Services.AddControllers();
             builder.Services.AddProblemDetails();
+            builder.Services.AddExceptionHandler<DatabaseExceptionHandler>();
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(connectionString))

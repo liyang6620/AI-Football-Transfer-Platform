@@ -18,7 +18,7 @@ function publishApiState(state) {
 
 function shouldRetry(error) {
     const status = error.response?.status;
-    return !error.response || status === 502 || status === 503 || status === 504;
+    return !error.response || status >= 500;
 }
 
 export async function getWithRecovery(path, config = {}) {

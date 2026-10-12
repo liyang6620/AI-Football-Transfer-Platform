@@ -45,10 +45,22 @@ describe('getWithRecovery', () => {
     expect(states.at(-1)).toBe('ready')
   })
 
-  it('does not retry a non-transient server error', async () => {
+  it('retries one server error before reporting unavailable', async () => {
+    vi.useFakeTimers()
     mocks.get.mockRejectedValue({ response: { status: 500 } })
 
-    await expect(getWithRecovery('/transfers')).rejects.toMatchObject({ response: { status: 500 } })
+    const responsePromise = getWithRecovery('/transfers')
+    const rejection = expect(responsePromise).rejects.toMatchObject({ response: { status: 500 } })
+    await vi.advanceTimersByTimeAsync(2500)
+    await rejection
+
+    expect(mocks.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not retry a client error', async () => {
+    mocks.get.mockRejectedValue({ response: { status: 400 } })
+
+    await expect(getWithRecovery('/transfers')).rejects.toMatchObject({ response: { status: 400 } })
     expect(mocks.get).toHaveBeenCalledTimes(1)
   })
 })
