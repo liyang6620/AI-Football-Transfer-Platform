@@ -22,7 +22,7 @@ public sealed class DatabaseExceptionHandler : IExceptionHandler
             return false;
         }
 
-        _logger.LogWarning(exception, "PostgreSQL is unavailable for {Path}.", httpContext.Request.Path);
+        _logger.LogWarning(exception, "PostgreSQL is unavailable.");
 
         httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         httpContext.Response.Headers.RetryAfter = "10";
