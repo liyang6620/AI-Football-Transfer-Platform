@@ -70,16 +70,17 @@ public class NewsCrawlerService
 
         var normalizedItems = feedItems
             .Select(item => (
-                Title: NormalizeTitle(item.Title),
+                Title: CleanTitle(item.Title),
+                TitleKey: NormalizeTitle(item.Title),
                 RssContent: item.RssContent,
                 Url: item.Url.Trim(),
                 CanonicalUrl: NormalizeUrl(item.Url),
                 PublishedAt: item.PublishedAt,
                 Source: item.Source))
-            .Where(item => !string.IsNullOrWhiteSpace(item.CanonicalUrl) && !string.IsNullOrWhiteSpace(item.Title))
+            .Where(item => !string.IsNullOrWhiteSpace(item.CanonicalUrl) && !string.IsNullOrWhiteSpace(item.TitleKey))
             .GroupBy(item => item.CanonicalUrl, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
-            .GroupBy(item => item.Title, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(item => item.TitleKey, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .ToList();
 
@@ -103,7 +104,7 @@ public class NewsCrawlerService
 
         foreach (var item in normalizedItems)
         {
-            if (existingUrlSet.Contains(item.CanonicalUrl) || existingTitleSet.Contains(item.Title))
+            if (existingUrlSet.Contains(item.CanonicalUrl) || existingTitleSet.Contains(item.TitleKey))
             {
                 continue;
             }
@@ -135,7 +136,7 @@ public class NewsCrawlerService
 
             _context.TransferNews.Add(news);
             existingUrlSet.Add(item.CanonicalUrl);
-            existingTitleSet.Add(item.Title);
+            existingTitleSet.Add(item.TitleKey);
             added++;
         }
 
@@ -174,12 +175,22 @@ public class NewsCrawlerService
 
     private static string NormalizeTitle(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
-
-        var title = HtmlEntity.DeEntitize(value).ToLowerInvariant();
+        var title = CleanTitle(value).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
         title = Regex.Replace(title, @"\s+[-|]\s+(bbc|the guardian|google news|sky sports).*$", string.Empty);
         title = Regex.Replace(title, @"[^\p{L}\p{N}]+", " ");
         return Regex.Replace(title, @"\s+", " ").Trim();
+    }
+
+    private static string CleanTitle(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var title = Regex.Replace(HtmlEntity.DeEntitize(value), @"\s+", " ").Trim();
+        return Regex.Replace(
+            title,
+            @"\s+[-|]\s+(bbc|the guardian|google news|sky sports).*$",
+            string.Empty,
+            RegexOptions.IgnoreCase).Trim();
     }
 
     private async Task<string> GetFullArticleContentAsync(string url)

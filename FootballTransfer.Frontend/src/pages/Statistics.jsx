@@ -261,7 +261,7 @@ export default function Statistics() {
                     <div className="activity-list">
                         {computed.recentActivity.map((item) => (
                             <div className="activity-row" key={item.date}>
-                                <strong>{item.date}</strong>
+                                <strong>{new Date(item.date).toLocaleDateString()}</strong>
                                 <span>{item.count} records</span>
                                 <div>
                                     <i style={{ width: `${Math.min(item.count * 18, 100)}%` }} />

@@ -33,5 +33,6 @@ describe('Statistics', () => {
     expect(screen.getByText('BBC Sport Football')).toBeInTheDocument()
     expect(screen.getByText('5 source reports retained')).toBeInTheDocument()
     expect(screen.getByText('£50.0m total')).toBeInTheDocument()
+    expect(screen.getByText(new Date('2026-10-12').toLocaleDateString())).toBeInTheDocument()
   })
 })
