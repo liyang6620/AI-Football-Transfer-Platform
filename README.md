@@ -30,7 +30,17 @@ verified against the linked source before being treated as fact.
 
 ![Transfer Index overview](docs/screenshots/overview.png)
 
-![Transfer Index market data](docs/screenshots/market-data.png)
+## Product Tour
+
+| Transfer event feed | Multi-source event detail |
+| --- | --- |
+| Browse server-paginated events by status, search term and sort order. | Review the canonical event together with every retained source report. |
+| ![Transfer event feed](docs/screenshots/transfers.png) | ![Multi-source transfer detail](docs/screenshots/transfer-detail.png) |
+
+| Market analytics | Methodology and source health |
+| --- | --- |
+| Inspect event mix, extraction confidence, fees, club activity and reporting coverage. | See the live ingestion state and the evidence rules behind each record. |
+| ![Transfer market analytics](docs/screenshots/market-data.png) | ![Methodology and source health](docs/screenshots/source-health.png) |
 
 ---
 
