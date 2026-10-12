@@ -286,7 +286,7 @@ dotnet run
 ```bash
 cd FootballTransfer.Frontend
 
-npm ci --legacy-peer-deps
+npm ci
 
 npm run dev
 ```
@@ -304,7 +304,7 @@ dotnet build AI-Football-Transfer-Platform.slnx --configuration Release --warnas
 dotnet test AI-Football-Transfer-Platform.slnx --configuration Release
 
 cd FootballTransfer.Frontend
-npm ci --legacy-peer-deps
+npm ci
 npm run lint
 npm test
 npm run build
