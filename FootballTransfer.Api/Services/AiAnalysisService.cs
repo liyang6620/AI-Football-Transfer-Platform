@@ -199,7 +199,10 @@ public class AiAnalysisService
         news.FromClub = ClubNameNormalizer.Normalize(aiResult.FromClub);
         news.ToClub = ClubNameNormalizer.Normalize(aiResult.ToClub);
         news.TransferType = aiResult.TransferType;
-        news.EstimatedFee = aiResult.EstimatedFee;
+        news.EstimatedFee = TransferFeeNormalizer.NormalizeToMillions(
+            aiResult.EstimatedFee,
+            $"{news.Title} {contentForAi}");
+        aiResult.EstimatedFee = news.EstimatedFee;
         news.Confidence = aiResult.Confidence;
 
         if (news.TransferType == "Free Transfer")

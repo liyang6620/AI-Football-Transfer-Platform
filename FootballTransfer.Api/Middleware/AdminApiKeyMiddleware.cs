@@ -45,13 +45,12 @@ public sealed class AdminApiKeyMiddleware
     {
         if (request.Path.StartsWithSegments("/api/ai") ||
             request.Path.StartsWithSegments("/api/crawler") ||
-            request.Path.Equals("/api/news/unprocessed"))
+            request.Path.StartsWithSegments("/api/news"))
         {
             return true;
         }
 
-        return request.Method != HttpMethods.Get &&
-               request.Path.StartsWithSegments("/api/news");
+        return false;
     }
 
     private static bool KeysMatch(string expected, string supplied)

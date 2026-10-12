@@ -11,6 +11,8 @@ appsettings.Development.json
 node_modules/
 dist/
 coverage/
+.edge-shot-*/
+docs/screenshots/*-final.png
 
 .env
 .env.*

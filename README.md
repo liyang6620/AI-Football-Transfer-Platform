@@ -24,6 +24,14 @@ Backend API
 
 https://football-transfer-api.onrender.com
 
+The demo is a portfolio-grade market monitor, not an official transfer registry
+or financial product. Records are generated from public reporting and should be
+verified against the linked source before being treated as fact.
+
+![Transfer Index overview](docs/screenshots/overview.png)
+
+![Transfer Index market data](docs/screenshots/market-data.png)
+
 ---
 
 ## System Architecture
@@ -224,6 +232,11 @@ handled safely, JSON parsing failures fall back to an `Unknown` result, and
 transfer types, currencies, fees, confidence scores, and summary length are
 validated before persistence.
 
+Fees are stored in millions of their reported currency. A deterministic
+post-processing rule converts grouped base-currency values such as `GBP 500,000`
+to `0.5` before persistence, so model output cannot silently turn thousands into
+hundreds of millions.
+
 Confidence is evidence-based rather than type-based. The model scores current-
 event clarity, entity specificity, source language, and concrete deal details,
 then applies a penalty for speculative wording. Scores are returned to two
@@ -336,8 +349,11 @@ BackgroundJobs__BatchSize=10
 BackgroundJobs__MaxBatchesPerRun=2
 ```
 
-Administrative endpoints under `/api/ai`, `/api/crawler`, and write operations
-under `/api/news` require the same value in the `X-Admin-Api-Key` request header.
+Administrative endpoints under `/api/ai`, `/api/crawler`, and `/api/news`
+require the same value in the `X-Admin-Api-Key` request header. News routes are
+private because they contain crawler inputs and full article text. Public
+transfer responses expose only structured fields, a short AI summary, source
+attribution, and the original article link.
 
 ### Frontend
 
@@ -386,6 +402,11 @@ dotnet ef database update
 Before applying `AddUniqueNewsIndexes`, remove any duplicate `TransferNews.Url`
 or `Transfers.TransferNewsId` values. The migration intentionally enforces one
 news record per URL and one transfer record per source article.
+
+The schema migration also enables PostgreSQL row-level security on every public
+table without adding anonymous policies. Render connects as the database owner,
+while Supabase `anon` and `authenticated` clients have no direct table access.
+The browser communicates only with the documented Render API.
 
 ### 2. Deploy the API to Render
 
@@ -443,8 +464,7 @@ The following operations are intentionally unavailable without the Render
 
 - all `/api/ai` endpoints
 - all `/api/crawler` endpoints
-- `GET /api/news/unprocessed`
-- non-GET requests under `/api/news`
+- all `/api/news` endpoints
 
 Send the key only from a trusted administration client:
 
@@ -486,7 +506,7 @@ Several enhancements are planned for future versions:
 - Transfer timeline visualization
 - AI confidence explanation
 - Curated extraction-evaluation dataset
-- Pagination and response caching for larger datasets
+- Server-side pagination for datasets beyond the current demo scale
 - Centralized production logging and alerting
 - User accounts, favourites and notifications
 

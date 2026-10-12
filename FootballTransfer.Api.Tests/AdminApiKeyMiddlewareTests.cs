@@ -51,6 +51,22 @@ public sealed class AdminApiKeyMiddlewareTests
         Assert.True(called);
     }
 
+    [Fact]
+    public async Task News_read_route_requires_the_admin_key()
+    {
+        var called = false;
+        var middleware = CreateMiddleware(() => called = true);
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Path = "/api/news";
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+        Assert.False(called);
+    }
+
     private static AdminApiKeyMiddleware CreateMiddleware(Action onNext)
     {
         var configuration = new ConfigurationBuilder()

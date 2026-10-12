@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchTransfers } from '../api/transferApi'
 import { getApiErrorMessage } from '../api/axios'
 import { Link, useSearchParams } from 'react-router-dom'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import '../styles/Transfers.css'
+
+const PAGE_SIZE = 25
 
 const CATEGORY_MAP = {
     official: {
@@ -32,6 +35,7 @@ export default function Transfers() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [sortBy, setSortBy] = useState('newest')
+    const [page, setPage] = useState(1)
     const [reloadKey, setReloadKey] = useState(0)
 
     const [params, setParams] = useSearchParams()
@@ -142,6 +146,10 @@ export default function Transfers() {
         })
     }, [items, category, search, isGlobalSearch, sortBy])
 
+    const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+    const currentPage = Math.min(page, pageCount)
+    const visibleItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
     function formatFee(fee, currency) {
         if (fee === 0) return 'Free'
         if (!fee) return 'Undisclosed'
@@ -180,10 +188,12 @@ export default function Transfers() {
     function handleCategoryChange(k) {
         setParams({ cat: k })
         setSortBy('newest')
+        setPage(1)
     }
 
     function handleSearchChange(e) {
         const value = e.target.value
+        setPage(1)
 
         if (value.trim()) {
             setParams({ cat: category, search: value })
@@ -194,6 +204,7 @@ export default function Transfers() {
 
     function clearSearch() {
         setParams({ cat: category })
+        setPage(1)
     }
 
     return (
@@ -279,7 +290,7 @@ export default function Transfers() {
                     <div className="feed-actions">
                         <p>{filtered.length} records found</p>
 
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setPage(1) }} aria-label="Sort transfer records">
                             <option value="newest">Newest first</option>
                             <option value="oldest">Oldest first</option>
                             <option value="confidence">Highest confidence</option>
@@ -298,7 +309,7 @@ export default function Transfers() {
                         <span>Date</span>
                     </div>
 
-                    {!error && filtered.map((it) => {
+                    {!error && visibleItems.map((it) => {
                         const id = it.id || it._id || it.newsId
                         const player = it.player || it.playerName || it.title || 'Unknown Player'
                         const from = it.fromClub || it.from || it.clubFrom || 'Unknown'
@@ -338,8 +349,6 @@ export default function Transfers() {
                         )
                     })}
 
-                    {!loading && !error && filtered.length === 0 && <div className="transfer-empty">No matching transfer records.</div>}
-
                     {loading && (
                         <div className="transfer-state">
                             Loading transfers…
@@ -352,6 +361,35 @@ export default function Transfers() {
                         </div>
                     )}
                 </div>
+
+                {!loading && !error && filtered.length > PAGE_SIZE && (
+                    <nav className="transfer-pagination" aria-label="Transfer results pages">
+                        <span>
+                            {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+                        </span>
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setPage((value) => Math.max(1, value - 1))}
+                                disabled={currentPage === 1}
+                                aria-label="Previous page"
+                                title="Previous page"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <strong>Page {currentPage} of {pageCount}</strong>
+                            <button
+                                type="button"
+                                onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                                disabled={currentPage === pageCount}
+                                aria-label="Next page"
+                                title="Next page"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    </nav>
+                )}
             </section>
         </div>
     )

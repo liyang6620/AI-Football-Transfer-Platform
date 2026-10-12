@@ -16,6 +16,7 @@ public class TransfersController : ControllerBase
     }
 
     [HttpGet]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public async Task<IActionResult> GetAll()
     {
         var transfers = await _context.Transfers
@@ -50,6 +51,7 @@ public class TransfersController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public async Task<IActionResult> GetById(int id)
     {
         var transfer = await _context.Transfers
@@ -70,10 +72,6 @@ public class TransfersController : ControllerBase
 
                 NewsTitle = t.TransferNews != null
                     ? t.TransferNews.Title
-                    : null,
-
-                NewsContent = t.TransferNews != null
-                    ? t.TransferNews.Content
                     : null,
 
                 NewsUrl = t.TransferNews != null
@@ -102,6 +100,7 @@ public class TransfersController : ControllerBase
     }
 
     [HttpGet("search")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "keyword" })]
     public async Task<IActionResult> Search([FromQuery] string keyword)
     {
         if (string.IsNullOrWhiteSpace(keyword))
@@ -110,6 +109,11 @@ public class TransfersController : ControllerBase
             {
                 message = "Keyword is required."
             });
+        }
+
+        if (keyword.Length > 100)
+        {
+            return BadRequest(new { message = "Keyword must not exceed 100 characters." });
         }
 
         var lowerKeyword = keyword.ToLower();
@@ -163,6 +167,7 @@ public class TransfersController : ControllerBase
     }
 
     [HttpGet("stats")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public async Task<IActionResult> GetStats()
     {
         var totalTransfers =

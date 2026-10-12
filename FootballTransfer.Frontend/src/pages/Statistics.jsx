@@ -140,19 +140,20 @@ export default function Statistics() {
         const topDestinationClubs = topClubs(['toClub', 'to', 'clubTo'])
         const topSourceClubs = topClubs(['fromClub', 'from', 'clubFrom'])
 
-        const dateMap = {}
+        const dateMap = new Map()
 
         items.forEach((it) => {
             const raw = it.date || it.publishedAt || it.published
             if (!raw) return
 
-            const label = new Date(raw).toLocaleDateString()
-
-            dateMap[label] = (dateMap[label] || 0) + 1
+            const timestamp = new Date(raw).setHours(0, 0, 0, 0)
+            if (Number.isNaN(timestamp)) return
+            dateMap.set(timestamp, (dateMap.get(timestamp) || 0) + 1)
         })
 
-        const recentActivity = Object.entries(dateMap)
-            .map(([date, count]) => ({ date, count }))
+        const recentActivity = [...dateMap.entries()]
+            .sort((a, b) => b[0] - a[0])
+            .map(([timestamp, count]) => ({ date: new Date(timestamp).toLocaleDateString(), count }))
             .slice(0, 6)
 
         return {

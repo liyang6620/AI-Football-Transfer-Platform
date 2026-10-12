@@ -15,6 +15,7 @@ namespace FootballTransfer.Api
             builder.Services.AddControllers();
             builder.Services.AddProblemDetails();
             builder.Services.AddExceptionHandler<DatabaseExceptionHandler>();
+            builder.Services.AddResponseCaching();
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -71,6 +72,15 @@ namespace FootballTransfer.Api
 
             app.UseExceptionHandler();
             app.UseHttpsRedirection();
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                context.Response.Headers["X-Frame-Options"] = "DENY";
+                context.Response.Headers["Referrer-Policy"] = "no-referrer";
+                context.Response.Headers.Append("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+                await next();
+            });
+            app.UseResponseCaching();
             app.UseCors("Frontend");
             app.UseMiddleware<AdminApiKeyMiddleware>();
             app.UseAuthorization();

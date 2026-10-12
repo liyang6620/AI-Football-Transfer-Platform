@@ -435,6 +435,8 @@ public class OpenAiAnalysisService
         var text = $"{title} {content}";
         var lowerText = text.ToLowerInvariant();
 
+        result.EstimatedFee = TransferFeeNormalizer.NormalizeToMillions(result.EstimatedFee, text);
+
         if (ContainsUndisclosedFee(lowerText))
         {
             result.EstimatedFee = null;

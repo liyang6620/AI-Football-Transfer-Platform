@@ -6,6 +6,17 @@ namespace FootballTransfer.Api.Tests;
 public sealed class DatabaseMigrationTests
 {
     [Fact]
+    public void Production_hardening_migration_is_discoverable()
+    {
+        var options = new DbContextOptionsBuilder<FootballTransferDbContext>()
+            .UseNpgsql("Host=localhost;Database=discovery;Username=postgres;Password=postgres")
+            .Options;
+        using var context = new FootballTransferDbContext(options);
+
+        Assert.Contains("20261012030000_HardenPublicSchemaAndCorrectFees", context.Database.GetMigrations());
+    }
+
+    [Fact]
     public async Task All_migrations_apply_to_postgresql()
     {
         var connectionString = Environment.GetEnvironmentVariable("TEST_POSTGRES_CONNECTION");
