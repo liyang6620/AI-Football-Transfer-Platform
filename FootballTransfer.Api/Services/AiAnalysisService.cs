@@ -69,10 +69,10 @@ public class AiAnalysisService
     {
         // Transfers are derived from AI output. Rebuild them from scratch so that
         // records which are no longer valid are removed instead of lingering.
-        _context.Transfers.RemoveRange(await _context.Transfers.ToListAsync());
         var newsItems = await _context.TransferNews.ToListAsync();
         foreach (var news in newsItems)
         {
+            news.TransferId = null;
             news.IsProcessed = false;
             news.AiSummary = null;
             news.ExtractedPlayer = null;
@@ -84,6 +84,8 @@ public class AiAnalysisService
             news.Confidence = null;
         }
 
+        await _context.SaveChangesAsync();
+        _context.Transfers.RemoveRange(await _context.Transfers.ToListAsync());
         await _context.SaveChangesAsync();
         return await ProcessAllAsync();
     }
@@ -110,25 +112,23 @@ public class AiAnalysisService
             normalized += NormalizeClubField(transfer.ToClub, value => transfer.ToClub = value);
         }
 
-        var kept = new List<Transfer>();
+        var kept = new Dictionary<string, Transfer>(StringComparer.Ordinal);
         var duplicatesRemoved = 0;
         foreach (var transfer in transfers)
         {
-            var duplicate = kept.Any(existing =>
-                ClubNameNormalizer.TextKey(existing.PlayerName) == ClubNameNormalizer.TextKey(transfer.PlayerName) &&
-                ClubNameNormalizer.Key(existing.FromClub) == ClubNameNormalizer.Key(transfer.FromClub) &&
-                ClubNameNormalizer.Key(existing.ToClub) == ClubNameNormalizer.Key(transfer.ToClub) &&
-                string.Equals(existing.TransferType, transfer.TransferType, StringComparison.OrdinalIgnoreCase) &&
-                Math.Abs((existing.PublishedAt - transfer.PublishedAt).TotalDays) <= 14);
-
-            if (duplicate)
+            var eventKey = TransferEventKey.Create(transfer.PlayerName, transfer.ToClub, transfer.TransferType);
+            transfer.EventKey = eventKey;
+            if (kept.TryGetValue(eventKey, out var existing))
             {
+                await _context.TransferNews
+                    .Where(news => news.TransferId == transfer.Id)
+                    .ExecuteUpdateAsync(update => update.SetProperty(news => news.TransferId, existing.Id));
                 _context.Transfers.Remove(transfer);
                 duplicatesRemoved++;
             }
             else
             {
-                kept.Add(transfer);
+                kept[eventKey] = transfer;
             }
         }
 
@@ -257,28 +257,23 @@ public class AiAnalysisService
             return;
         }
 
-        var existingForNews = await _context.Transfers
-            .FirstOrDefaultAsync(t => t.TransferNewsId == news.Id);
+        var existingForNews = _context.Transfers.Local
+            .FirstOrDefault(t => t.TransferNewsId == news.Id)
+            ?? await _context.Transfers.FirstOrDefaultAsync(t => t.TransferNewsId == news.Id);
 
         if (existingForNews != null)
         {
+            news.Transfer = existingForNews;
             return;
         }
 
-        var windowStart = news.PublishedAt.AddDays(-14);
-        var windowEnd = news.PublishedAt.AddDays(14);
-        var possibleDuplicates = await _context.Transfers
-            .Where(t => t.TransferType == news.TransferType &&
-                        t.PublishedAt >= windowStart && t.PublishedAt <= windowEnd)
-            .ToListAsync();
-
-        var duplicate = possibleDuplicates.FirstOrDefault(t =>
-            ClubNameNormalizer.TextKey(t.PlayerName) == ClubNameNormalizer.TextKey(news.ExtractedPlayer) &&
-            ClubNameNormalizer.Key(t.FromClub) == ClubNameNormalizer.Key(news.FromClub) &&
-            ClubNameNormalizer.Key(t.ToClub) == ClubNameNormalizer.Key(news.ToClub));
+        var eventKey = TransferEventKey.Create(news.ExtractedPlayer, news.ToClub, news.TransferType);
+        var duplicate = _context.Transfers.Local.FirstOrDefault(t => t.EventKey == eventKey)
+            ?? await _context.Transfers.FirstOrDefaultAsync(t => t.EventKey == eventKey);
 
         if (duplicate != null)
         {
+            news.Transfer = duplicate;
             if ((news.Confidence ?? 0) > (duplicate.Confidence ?? 0))
             {
                 duplicate.PlayerName = news.ExtractedPlayer?.Trim();
@@ -306,7 +301,9 @@ public class AiAnalysisService
             EstimatedFee = news.TransferType == "Free Transfer" ? 0 : news.EstimatedFee,
             FeeCurrency = feeCurrency,
             Confidence = news.Confidence,
+            EventKey = eventKey,
             TransferNewsId = news.Id,
+            Sources = [news],
             PublishedAt = news.PublishedAt,
             CreatedAt = DateTime.UtcNow
         };

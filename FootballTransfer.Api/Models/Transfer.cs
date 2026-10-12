@@ -18,9 +18,13 @@ public class Transfer
 
     public double? Confidence { get; set; }
 
+    public string EventKey { get; set; } = string.Empty;
+
     public int TransferNewsId { get; set; }
 
     public TransferNews? TransferNews { get; set; }
+
+    public ICollection<TransferNews> Sources { get; set; } = [];
 
     public DateTime PublishedAt { get; set; }
 

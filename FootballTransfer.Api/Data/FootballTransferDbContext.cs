@@ -14,6 +14,7 @@ public class FootballTransferDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<Club> Clubs { get; set; }
     public DbSet<Transfer> Transfers { get; set; }
+    public DbSet<SourceSyncState> SourceSyncStates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +34,26 @@ public class FootballTransferDbContext : DbContext
 
         modelBuilder.Entity<Transfer>()
             .HasIndex(t => t.TransferNewsId)
+            .IsUnique();
+
+        modelBuilder.Entity<Transfer>()
+            .HasIndex(t => t.EventKey)
+            .IsUnique();
+
+        modelBuilder.Entity<Transfer>()
+            .HasOne(t => t.TransferNews)
+            .WithMany()
+            .HasForeignKey(t => t.TransferNewsId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TransferNews>()
+            .HasOne(n => n.Transfer)
+            .WithMany(t => t.Sources)
+            .HasForeignKey(n => n.TransferId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<SourceSyncState>()
+            .HasIndex(s => s.Name)
             .IsUnique();
     }
 }

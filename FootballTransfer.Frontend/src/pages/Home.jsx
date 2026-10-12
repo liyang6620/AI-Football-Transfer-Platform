@@ -23,14 +23,14 @@ export default function Home() {
                 setError(null)
                 const [statsResult, transfersResult] = await Promise.allSettled([
                     fetchStats(),
-                    fetchTransfers()
+                    fetchTransfers({ pageSize: 5 })
                 ])
                 if (!mounted) return
                 if (statsResult.status === 'rejected' && transfersResult.status === 'rejected') {
                     throw transfersResult.reason
                 }
                 setStats(statsResult.status === 'fulfilled' ? statsResult.value : null)
-                setItems(transfersResult.status === 'fulfilled' ? transfersResult.value || [] : [])
+                setItems(transfersResult.status === 'fulfilled' ? transfersResult.value?.items || [] : [])
                 if (statsResult.status === 'rejected' || transfersResult.status === 'rejected') {
                     setError('Some live market data could not be loaded.')
                 }
@@ -106,7 +106,7 @@ export default function Home() {
                     </div>
                 </div>
                 <div className="hero-status">
-                    <span><i /> Monitoring BBC Sport</span>
+                    <span><i /> Monitoring 3 news feeds</span>
                     <span>Structured records</span>
                     <span>Updated automatically</span>
                 </div>

@@ -17,7 +17,7 @@ namespace FootballTransfer.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -75,6 +75,42 @@ namespace FootballTransfer.Api.Migrations
                     b.ToTable("Players");
                 });
 
+            modelBuilder.Entity("FootballTransfer.Api.Models.SourceSyncState", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ItemsSeen")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastSuccessAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("SourceSyncStates");
+                });
+
             modelBuilder.Entity("FootballTransfer.Api.Models.Transfer", b =>
                 {
                     b.Property<int>("Id")
@@ -92,6 +128,10 @@ namespace FootballTransfer.Api.Migrations
                     b.Property<decimal?>("EstimatedFee")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("EventKey")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("FeeCurrency")
                         .HasColumnType("text");
@@ -115,6 +155,9 @@ namespace FootballTransfer.Api.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EventKey")
+                        .IsUnique();
 
                     b.HasIndex("TransferNewsId")
                         .IsUnique();
@@ -173,6 +216,9 @@ namespace FootballTransfer.Api.Migrations
                     b.Property<string>("ToClub")
                         .HasColumnType("text");
 
+                    b.Property<int?>("TransferId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("TransferType")
                         .HasColumnType("text");
 
@@ -181,6 +227,8 @@ namespace FootballTransfer.Api.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TransferId");
 
                     b.HasIndex("Url")
                         .IsUnique();
@@ -193,10 +241,25 @@ namespace FootballTransfer.Api.Migrations
                     b.HasOne("FootballTransfer.Api.Models.TransferNews", "TransferNews")
                         .WithMany()
                         .HasForeignKey("TransferNewsId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("TransferNews");
+                });
+
+            modelBuilder.Entity("FootballTransfer.Api.Models.TransferNews", b =>
+                {
+                    b.HasOne("FootballTransfer.Api.Models.Transfer", "Transfer")
+                        .WithMany("Sources")
+                        .HasForeignKey("TransferId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Transfer");
+                });
+
+            modelBuilder.Entity("FootballTransfer.Api.Models.Transfer", b =>
+                {
+                    b.Navigation("Sources");
                 });
 #pragma warning restore 612, 618
         }

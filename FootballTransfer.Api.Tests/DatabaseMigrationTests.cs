@@ -14,6 +14,7 @@ public sealed class DatabaseMigrationTests
         using var context = new FootballTransferDbContext(options);
 
         Assert.Contains("20261012030000_HardenPublicSchemaAndCorrectFees", context.Database.GetMigrations());
+        Assert.Contains("20261012030001_AddEventAggregationAndSourceStatus", context.Database.GetMigrations());
     }
 
     [Fact]

@@ -1,6 +1,18 @@
+import { useEffect, useState } from 'react'
+import { fetchSourceStatus } from '../api/transferApi'
 import '../styles/About.css'
 
 export default function About() {
+    const [sourceStatus, setSourceStatus] = useState(null)
+
+    useEffect(() => {
+        let mounted = true
+        fetchSourceStatus()
+            .then((result) => { if (mounted) setSourceStatus(result) })
+            .catch(() => {})
+        return () => { mounted = false }
+    }, [])
+
     return (
         <div className="about-page">
             <section className="about-hero">
@@ -11,6 +23,24 @@ export default function About() {
                         From free news feeds to a validated market record: the sources,
                         safeguards and evidence rules behind every result.
                     </p>
+                </div>
+            </section>
+
+            <section className="source-status-section">
+                <div className="section-head">
+                    <span>Live Inputs</span>
+                    <h2>Source Status</h2>
+                </div>
+                <div className="source-status-grid">
+                    {(sourceStatus?.sources || []).map((source) => (
+                        <div key={source.name}>
+                            <span className={`source-health ${source.status}`}>{source.status}</span>
+                            <strong>{source.name}</strong>
+                            <p>{source.storedReports} reports retained</p>
+                            <small>{source.lastSuccessAt ? `Last collected ${new Date(source.lastSuccessAt).toLocaleString()}` : 'Awaiting the next collection run'}</small>
+                        </div>
+                    ))}
+                    {!sourceStatus && <p className="source-status-loading">Loading source status…</p>}
                 </div>
             </section>
 
@@ -102,7 +132,7 @@ export default function About() {
             </section>
 
             <p className="about-note">
-                Collection runs every 30 days to control processing cost. Transfer Index is a
+                Collection runs every 24 hours with bounded AI batches to control processing cost. Transfer Index is a
                 monitored news dataset, not an authoritative registry of every global transfer.
             </p>
         </div>

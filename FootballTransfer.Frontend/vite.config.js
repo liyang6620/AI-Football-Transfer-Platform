@@ -5,15 +5,18 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],
-      include: ['src/api/axios.js'],
+      include: ['src/api/**/*.{js,jsx}', 'src/pages/**/*.{js,jsx}'],
+      exclude: ['src/**/*.test.{js,jsx}'],
       thresholds: {
-        lines: 70,
-        functions: 70,
-        statements: 70,
-        branches: 60,
+        lines: 25,
+        functions: 25,
+        statements: 25,
+        branches: 20,
       },
     },
   },

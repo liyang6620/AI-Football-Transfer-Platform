@@ -33,4 +33,8 @@ public class TransferNews
     public decimal? EstimatedFee { get; set; }
 
     public double? Confidence { get; set; }
+
+    public int? TransferId { get; set; }
+
+    public Transfer? Transfer { get; set; }
 }

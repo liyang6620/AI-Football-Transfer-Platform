@@ -1,7 +1,7 @@
 import { getWithRecovery } from './axios'
 
-export async function fetchTransfers() {
-  const res = await getWithRecovery('/transfers')
+export async function fetchTransfers(params = {}) {
+  const res = await getWithRecovery('/transfers', { params })
   return res.data
 }
 
@@ -20,4 +20,9 @@ export async function fetchStats() {
   return res.data
 }
 
-export default { fetchTransfers, fetchTransfer, searchTransfers, fetchStats }
+export async function fetchSourceStatus() {
+  const res = await getWithRecovery('/sources/status')
+  return res.data
+}
+
+export default { fetchTransfers, fetchTransfer, searchTransfers, fetchStats, fetchSourceStatus }

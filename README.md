@@ -8,7 +8,7 @@ AI Football Transfer Platform is a full-stack web application that automatically
 
 Traditional football news websites mainly provide unstructured articles that require manual reading to identify transfer details. This project aims to automate the entire pipeline from news collection to structured transfer intelligence.
 
-The system periodically crawls football news from BBC Sport, retrieves the full article content, sends it to the OpenAI API for semantic analysis, extracts transfer-related entities and metadata, stores the results in PostgreSQL, and exposes them through a RESTful API for a modern React frontend.
+The system periodically crawls football news from BBC Sport, The Guardian and Google News, retrieves article content, sends bounded inputs to the OpenAI API for semantic analysis, extracts structured transfer metadata, aggregates multiple reports into canonical events, and exposes the results through a RESTful API for a modern React frontend.
 
 The project demonstrates practical experience in full-stack development, AI integration, backend services, data processing, REST API design, cloud deployment, and database management.
 
@@ -49,6 +49,9 @@ Article Content Extraction
 OpenAI Analysis
           │
           ▼
+Event Aggregation
+          │
+          ▼
 PostgreSQL Database
           │
           ▼
@@ -77,6 +80,8 @@ Each component is designed independently to improve maintainability and scalabil
 - Download complete article content instead of RSS summaries
 - Filter likely transfer stories before AI processing
 - Avoid duplicate articles using URL comparison
+- Retain source-level provenance while merging duplicate reports into canonical events
+- Record per-feed attempts, successful syncs, item counts and failure state
 - Continue processing when one feed is temporarily unavailable
 - Automatically schedule crawling through a background service
 
@@ -118,7 +123,7 @@ Users can search transfer news by:
 
 Each transfer record contains
 
-- Original news source
+- All retained source reports and a primary source
 - Publication date
 - AI summary
 - Confidence score
@@ -209,6 +214,19 @@ Main entities include:
 - Confidence
 - Processing Status
 
+### Transfer
+
+- Stable event key derived from player, destination and event family
+- Canonical player, route, transfer type, fee and confidence fields
+- Primary report plus a one-to-many collection of supporting source reports
+
+### SourceSyncState
+
+- Feed URL and name
+- Last attempt and successful sync timestamps
+- Items seen during the latest run
+- Sanitized failure type for public health reporting
+
 The database is managed using Entity Framework Core Code First migrations.
 
 ---
@@ -225,7 +243,8 @@ For every article, the backend performs the following steps:
 6. Receive structured JSON
 7. Validate extracted fields
 8. Save results into PostgreSQL
-9. Return data through REST API
+9. Attach the report to an existing canonical event or create a new event
+10. Return paginated event data and retained source provenance through the REST API
 
 The AI boundary is treated as untrusted input: empty or oversized articles are
 handled safely, JSON parsing failures fall back to an `Unknown` result, and
@@ -256,7 +275,24 @@ GET /api/transfers
 GET /api/transfers/{id}
 GET /api/transfers/search?keyword=arsenal
 GET /api/transfers/stats
+GET /api/sources/status
+GET /openapi/v1.json
 ```
+
+The main transfer endpoint supports server-side pagination, filtering, search
+and sorting:
+
+```http
+GET /api/transfers?page=1&pageSize=25&category=rumours&search=arsenal&sort=confidence
+```
+
+It returns `items`, `page`, `pageSize`, `totalCount` and `totalPages`.
+`category` accepts `official`, `rumours`, `contracts` or `free`; `sort`
+accepts `newest`, `oldest`, `confidence` or `fee`. Page size is capped at 100.
+Each item reports its `sourceCount`, while the detail endpoint includes source
+titles, attribution, links and short summaries without exposing downloaded
+article bodies. The public OpenAPI document describes the typed list, detail
+and source-status contracts.
 
 `/health` is a process-level liveness check used by the hosting platform.
 `/ready` additionally verifies PostgreSQL connectivity and confirms that all
@@ -322,6 +358,24 @@ npm run lint
 npm test
 npm run build
 ```
+
+Validate the curated extraction benchmark without calling OpenAI:
+
+```bash
+node tools/evaluate-extraction.mjs
+```
+
+The default command validates 30 manually labelled positive and negative
+cases only. To score results produced separately, pass a JSON file containing
+one candidate result per case:
+
+```bash
+node tools/evaluate-extraction.mjs path/to/candidate-results.json
+```
+
+The script reports classification precision, recall and F1 plus exact field
+accuracy. No benchmark score is claimed in this repository until real model
+outputs are supplied.
 
 Backend integration tests use PostgreSQL when `TEST_POSTGRES_CONNECTION` is
 set. CI provisions a temporary PostgreSQL 16 service and validates that every
@@ -399,9 +453,9 @@ $env:ConnectionStrings__DefaultConnection="your_postgresql_connection"
 dotnet ef database update
 ```
 
-Before applying `AddUniqueNewsIndexes`, remove any duplicate `TransferNews.Url`
-or `Transfers.TransferNewsId` values. The migration intentionally enforces one
-news record per URL and one transfer record per source article.
+Current migrations retain unique source articles, derive stable transfer event
+keys, attach duplicate reports to one canonical event and remove only duplicate
+derived event rows. Original news records remain available as provenance.
 
 The schema migration also enables PostgreSQL row-level security on every public
 table without adding anonymous policies. Render connects as the database owner,
@@ -505,8 +559,6 @@ Several enhancements are planned for future versions:
 - Player and club images
 - Transfer timeline visualization
 - AI confidence explanation
-- Curated extraction-evaluation dataset
-- Server-side pagination for datasets beyond the current demo scale
 - Centralized production logging and alerting
 - User accounts, favourites and notifications
 

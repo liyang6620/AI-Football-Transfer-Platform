@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchStats, fetchTransfers } from '../api/transferApi'
+import { fetchStats } from '../api/transferApi'
 import { getApiErrorMessage } from '../api/axios'
 import '../styles/Statistics.css'
 
@@ -12,7 +12,6 @@ const TYPE_CONFIG = [
 
 export default function Statistics() {
     const [stats, setStats] = useState(null)
-    const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [reloadKey, setReloadKey] = useState(0)
@@ -25,21 +24,9 @@ export default function Statistics() {
                 setLoading(true)
                 setError(null)
 
-                const [statsResult, transfersResult] = await Promise.allSettled([
-                    fetchStats(),
-                    fetchTransfers()
-                ])
-
+                const result = await fetchStats()
                 if (!mounted) return
-
-                if (statsResult.status === 'rejected' && transfersResult.status === 'rejected') {
-                    throw transfersResult.reason
-                }
-                setStats(statsResult.status === 'fulfilled' ? statsResult.value : null)
-                setItems(transfersResult.status === 'fulfilled' ? transfersResult.value || [] : [])
-                if (statsResult.status === 'rejected' || transfersResult.status === 'rejected') {
-                    setError('Some statistics could not be loaded.')
-                }
+                setStats(result)
             } catch (e) {
                 if (mounted) setError(getApiErrorMessage(e, 'Live statistics are temporarily unavailable.'))
             } finally {
@@ -55,7 +42,7 @@ export default function Statistics() {
     }, [reloadKey])
 
     const computed = useMemo(() => {
-        const total = stats?.totalTransfers ?? items.length
+        const total = stats?.totalTransfers ?? 0
 
         const typeCounts = TYPE_CONFIG.map((type) => {
             let count = 0
@@ -65,13 +52,6 @@ export default function Statistics() {
             if (type.key === 'contracts') count = stats?.contracts ?? 0
             if (type.key === 'free') count = stats?.freeTransfers ?? 0
 
-            if (!count && items.length > 0) {
-                count = items.filter((it) => {
-                    const raw = (it.transferType || it.type || '').toString().toLowerCase()
-                    return type.match.some((m) => raw.includes(m))
-                }).length
-            }
-
             return {
                 ...type,
                 count,
@@ -79,98 +59,22 @@ export default function Statistics() {
             }
         })
 
-        const confidenceValues = items
-            .map((it) => Number(it.confidence ?? 0))
-            .filter((n) => !Number.isNaN(n) && n > 0)
-
-        const avgConfidence =
-            stats?.averageConfidence != null
-                ? Number(stats.averageConfidence)
-                : confidenceValues.length
-                    ? confidenceValues.reduce((a, b) => a + b, 0) / confidenceValues.length
-                    : 0
-
-        const highestConfidence = confidenceValues.length
-            ? Math.max(...confidenceValues)
-            : 0
-
-        const highConfidenceCount = confidenceValues.filter((n) => n >= 0.85).length
-        const lowConfidenceCount = confidenceValues.filter((n) => n > 0 && n < 0.7).length
-
-        const knownFeeItems = items.filter((it) => {
-            const fee = Number(it.estimatedFee ?? it.fee)
-            return !Number.isNaN(fee) && fee > 0
-        })
-
-        const feesByCurrency = Object.values(knownFeeItems.reduce((groups, item) => {
-            const currency = (item.feeCurrency || 'UNSPECIFIED').toUpperCase()
-            const amount = Number(item.estimatedFee ?? item.fee)
-            const group = groups[currency] || { currency, count: 0, total: 0, highest: 0 }
-            group.count += 1
-            group.total += amount
-            group.highest = Math.max(group.highest, amount)
-            groups[currency] = group
-            return groups
-        }, {})).map((group) => ({ ...group, average: group.total / group.count }))
-
-        const undisclosedCount = items.filter((it) => {
-            const fee = it.estimatedFee ?? it.fee
-            return fee === null || fee === undefined || fee === ''
-        }).length
-
-        function topClubs(fieldNames) {
-            const map = {}
-
-            items.forEach((it) => {
-                const club = fieldNames
-                    .map((name) => it[name])
-                    .find((v) => v && v !== 'Unknown')
-
-                if (!club) return
-
-                map[club] = (map[club] || 0) + 1
-            })
-
-            return Object.entries(map)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5)
-                .map(([name, count]) => ({ name, count }))
-        }
-
-        const topDestinationClubs = topClubs(['toClub', 'to', 'clubTo'])
-        const topSourceClubs = topClubs(['fromClub', 'from', 'clubFrom'])
-
-        const dateMap = new Map()
-
-        items.forEach((it) => {
-            const raw = it.date || it.publishedAt || it.published
-            if (!raw) return
-
-            const timestamp = new Date(raw).setHours(0, 0, 0, 0)
-            if (Number.isNaN(timestamp)) return
-            dateMap.set(timestamp, (dateMap.get(timestamp) || 0) + 1)
-        })
-
-        const recentActivity = [...dateMap.entries()]
-            .sort((a, b) => b[0] - a[0])
-            .map(([timestamp, count]) => ({ date: new Date(timestamp).toLocaleDateString(), count }))
-            .slice(0, 6)
-
         return {
             total,
             typeCounts,
-            avgConfidence,
-            highestConfidence,
-            highConfidenceCount,
-            lowConfidenceCount,
-            feesByCurrency,
-            undisclosedCount,
-            knownFeeCount: knownFeeItems.length,
-            topDestinationClubs,
-            topSourceClubs,
-            recentActivity
+            avgConfidence: Number(stats?.averageConfidence ?? 0),
+            highestConfidence: Number(stats?.highestConfidence ?? 0),
+            highConfidenceCount: stats?.highConfidenceCount ?? 0,
+            lowConfidenceCount: stats?.lowConfidenceCount ?? 0,
+            feesByCurrency: stats?.feesByCurrency ?? [],
+            undisclosedCount: stats?.undisclosedCount ?? 0,
+            knownFeeCount: stats?.knownFeeCount ?? 0,
+            topDestinationClubs: stats?.topDestinationClubs ?? [],
+            topSourceClubs: stats?.topSourceClubs ?? [],
+            recentActivity: stats?.recentActivity ?? [],
+            sourceCoverage: stats?.sourceCoverage ?? []
         }
-    }, [items, stats])
+    }, [stats])
 
     function pct(value) {
         return `${Math.round(Number(value || 0) * 100)}%`
@@ -182,7 +86,7 @@ export default function Statistics() {
         return `${symbols[currency] || `${currency} `}${amount}m`
     }
 
-    const dataUnavailable = Boolean(error && !stats && items.length === 0)
+    const dataUnavailable = Boolean(error && !stats)
 
     const overviewCards = [
         { label: 'Total Transfers', value: dataUnavailable ? null : computed.total },
@@ -324,6 +228,25 @@ export default function Statistics() {
                     <div className="club-columns">
                         <ClubList title="Destination Clubs" items={computed.topDestinationClubs} />
                         <ClubList title="Source Clubs" items={computed.topSourceClubs} />
+                    </div>
+                </div>
+
+                <div className="statistics-panel statistics-wide">
+                    <div className="panel-head">
+                        <div>
+                            <span>Source Coverage</span>
+                            <h2>Reporting Mix</h2>
+                        </div>
+                    </div>
+                    <div className="source-coverage-list">
+                        {computed.sourceCoverage.map((source) => (
+                            <div key={source.source}>
+                                <strong>{source.source}</strong>
+                                <span>{source.events} events</span>
+                                <small>{source.reports} source reports retained</small>
+                            </div>
+                        ))}
+                        {computed.sourceCoverage.length === 0 && <div className="statistics-empty">No source coverage data.</div>}
                     </div>
                 </div>
 

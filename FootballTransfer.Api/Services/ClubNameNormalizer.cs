@@ -19,7 +19,15 @@ public static partial class ClubNameNormalizer
         ["Internazionale Milano"] = "Inter Milan",
         ["Real Madrid CF"] = "Real Madrid",
         ["Atletico de Madrid"] = "Atletico Madrid",
-        ["Atletico Madrid"] = "Atletico Madrid"
+        ["Atletico Madrid"] = "Atletico Madrid",
+        ["Man Utd"] = "Manchester United",
+        ["Manchester Utd"] = "Manchester United",
+        ["Man United"] = "Manchester United",
+        ["Man City"] = "Manchester City",
+        ["Spurs"] = "Tottenham Hotspur",
+        ["Tottenham"] = "Tottenham Hotspur",
+        ["Inter"] = "Inter Milan",
+        ["AC Milan"] = "Milan"
     };
 
     public static string? Normalize(string? value)

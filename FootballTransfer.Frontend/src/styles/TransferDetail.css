@@ -204,6 +204,36 @@
     text-decoration: none;
 }
 
+.source-report-list {
+    display: grid;
+    gap: 14px;
+}
+
+.source-report-list article {
+    padding: 18px;
+    border: 1px solid #dce2dd;
+    background: #f8faf8;
+}
+
+.source-report-list article > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.source-report-list article h3 {
+    margin: 10px 0 8px;
+    font-size: 17px;
+    line-height: 1.35;
+}
+
+.source-report-list article p {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
     .original-link:hover {
         background: #15803d;
     }

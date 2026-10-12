@@ -22,20 +22,23 @@ public class NewsCrawlerService
 
     public async Task<int> CrawlAndSaveAsync()
     {
-        var sources = new[]
-        {
-            (Name: "BBC Sport Football", Url: "https://feeds.bbci.co.uk/sport/football/rss.xml"),
-            (Name: "The Guardian Football", Url: "https://www.theguardian.com/football/transfer-window/rss"),
-            (Name: "Google News Football Transfers", Url: "https://news.google.com/rss/search?q=football+transfer+OR+football+signing+OR+football+loan&hl=en-GB&gl=GB&ceid=GB:en")
-        };
-
         var feedItems = new List<(string Title, string RssContent, string Url, DateTime PublishedAt, string Source)>();
-        foreach (var source in sources)
+        foreach (var source in NewsSourceCatalog.All)
         {
+            var attemptedAt = DateTime.UtcNow;
+            var syncState = await _context.SourceSyncStates.FirstOrDefaultAsync(state => state.Name == source.Name);
+            if (syncState == null)
+            {
+                syncState = new SourceSyncState { Name = source.Name, Url = source.Url };
+                _context.SourceSyncStates.Add(syncState);
+            }
+            syncState.Url = source.Url;
+            syncState.LastAttemptAt = attemptedAt;
+
             try
             {
                 var feed = await FeedReader.ReadAsync(source.Url);
-                feedItems.AddRange(feed.Items
+                var sourceItems = feed.Items
                     .Take(100)
                     .Select(item => (
                         Title: item.Title ?? string.Empty,
@@ -44,16 +47,24 @@ public class NewsCrawlerService
                         PublishedAt: item.PublishingDate ?? DateTime.UtcNow,
                         Source: source.Name))
                     .Where(item => !string.IsNullOrWhiteSpace(item.Url))
-                    .Where(item => IsTransferCandidate(item.Title, item.RssContent)));
+                    .Where(item => IsTransferCandidate(item.Title, item.RssContent))
+                    .ToList();
+                feedItems.AddRange(sourceItems);
+                syncState.ItemsSeen = sourceItems.Count;
+                syncState.LastSuccessAt = attemptedAt;
+                syncState.LastError = null;
             }
             catch (Exception ex)
             {
+                syncState.ItemsSeen = 0;
+                syncState.LastError = ex.GetType().Name;
                 _logger.LogWarning(ex, "Unable to read news feed {Source} ({Url}).", source.Name, source.Url);
             }
         }
 
         if (feedItems.Count == 0)
         {
+            await _context.SaveChangesAsync();
             return 0;
         }
 

@@ -349,6 +349,28 @@
     gap: 12px;
 }
 
+.source-coverage-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.source-coverage-list > div {
+    padding: 18px;
+    border: 1px solid #dce2dd;
+    background: #f8faf8;
+}
+
+.source-coverage-list strong,
+.source-coverage-list span,
+.source-coverage-list small {
+    display: block;
+}
+
+.source-coverage-list strong { margin-bottom: 12px; font-size: 15px; }
+.source-coverage-list span { color: #166534; font-size: 20px; font-weight: 900; }
+.source-coverage-list small { margin-top: 5px; color: #64748b; }
+
 .activity-row {
     display: grid;
     grid-template-columns: 150px 110px 1fr;
@@ -451,7 +473,8 @@
 
     .quality-grid,
     .fee-list,
-    .club-columns {
+    .club-columns,
+    .source-coverage-list {
         grid-template-columns: 1fr;
     }
 

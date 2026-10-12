@@ -19,12 +19,26 @@ jobs:
       - name: Check API readiness
         run: curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 https://football-transfer-api.onrender.com/ready
       - name: Check public transfer feed
-        run: curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 https://football-transfer-api.onrender.com/api/transfers > /dev/null
+        run: |
+          curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 \
+            "https://football-transfer-api.onrender.com/api/transfers?page=1&pageSize=5" \
+            | jq -e '(.items | type == "array") and (.page == 1) and (.pageSize == 5) and (.totalCount >= 0) and (.totalPages >= 0)'
+      - name: Check source-health contract
+        run: |
+          curl --fail --location --silent --show-error --max-time 70 \
+            https://football-transfer-api.onrender.com/api/sources/status \
+            | jq -e '(.intervalHours >= 1) and (.sources | type == "array" and length == 3)'
+      - name: Check public OpenAPI document
+        run: |
+          curl --fail --location --silent --show-error --max-time 70 \
+            https://football-transfer-api.onrender.com/openapi/v1.json \
+            | jq -e '.paths["/api/Transfers"] != null or .paths["/api/transfers"] != null'
       - name: Check administration boundary
         run: test "$(curl --location --silent --output /dev/null --write-out '%{http_code}' --max-time 70 https://football-transfer-api.onrender.com/api/news)" = "401"
       - name: Check transfer detail privacy
         run: |
-          transfer_id=$(curl --fail --location --silent --show-error --max-time 70 https://football-transfer-api.onrender.com/api/transfers | jq -r '.[0].id')
+          transfer_id=$(curl --fail --location --silent --show-error --max-time 70 "https://football-transfer-api.onrender.com/api/transfers?pageSize=1" | jq -r '.items[0].id')
+          test "$transfer_id" != "null"
           curl --fail --location --silent --show-error --max-time 70 "https://football-transfer-api.onrender.com/api/transfers/${transfer_id}" | jq -e 'has("newsContent") | not'
       - name: Check baseline security headers
         run: |

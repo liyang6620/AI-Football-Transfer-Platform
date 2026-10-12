@@ -21,10 +21,8 @@ export default function TransferDetail() {
                 setLoading(true)
                 setError(null)
 
-                const [d, all] = await Promise.all([
-                    fetchTransfer(id),
-                    fetchTransfers().catch(() => [])
-                ])
+                const d = await fetchTransfer(id)
+                const related = await fetchTransfers({ search: getPlayerName(d), pageSize: 10 }).catch(() => ({ items: [] }))
 
                 if (!mounted) return
 
@@ -32,7 +30,7 @@ export default function TransferDetail() {
 
                 const playerName = getPlayerName(d)
 
-                const matched = (all || [])
+                const matched = (related.items || [])
                     .filter((x) => getPlayerName(x).toLowerCase() === playerName.toLowerCase())
                     .sort((a, b) => {
                         const da = new Date(a.date || a.publishedAt || a.published || a.createdAt || 0).getTime()
@@ -59,8 +57,8 @@ export default function TransferDetail() {
         if (!item) return null
 
         const player = getPlayerName(item)
-        const from = item.fromClub || item.from || item.clubFrom || '—'
-        const to = item.toClub || item.to || item.clubTo || '—'
+        const from = item.fromClub || item.from || item.clubFrom || 'Previous club not reported'
+        const to = item.toClub || item.to || item.clubTo || 'Destination not reported'
 
         const estimatedFee =
             item.estimatedFee ??
@@ -116,7 +114,8 @@ export default function TransferDetail() {
             summary,
             content,
             source,
-            url
+            url,
+            sources: item.sources || []
         }
     }, [item])
 
@@ -239,20 +238,20 @@ export default function TransferDetail() {
                         <p>{detail.summary}</p>
                     </section>
 
-                    {detail.title && (
+                    {detail.sources.length > 0 && (
                         <section className="detail-panel article-card">
-                            <span className="panel-kicker">Original Article</span>
-                            <h2>{detail.title}</h2>
-
-                            {detail.content && detail.content !== detail.summary && (
-                                <p>{detail.content}</p>
-                            )}
-
-                            {detail.url && (
-                                <a className="original-link" href={detail.url} target="_blank" rel="noreferrer">
-                                    Read Original Article
-                                </a>
-                            )}
+                            <span className="panel-kicker">Source Reports</span>
+                            <h2>{detail.sources.length} report{detail.sources.length === 1 ? '' : 's'} behind this event</h2>
+                            <div className="source-report-list">
+                                {detail.sources.map((source) => (
+                                    <article key={source.id}>
+                                        <div><strong>{source.source}</strong><span>{source.publishedAt ? new Date(source.publishedAt).toLocaleDateString() : 'No date'}</span></div>
+                                        <h3>{source.title}</h3>
+                                        {source.summary && <p>{source.summary}</p>}
+                                        <a className="original-link" href={source.url} target="_blank" rel="noreferrer">Read source report</a>
+                                    </article>
+                                ))}
+                            </div>
                         </section>
                     )}
 
@@ -264,8 +263,8 @@ export default function TransferDetail() {
                             {timeline.map((event, index) => {
                                 const eventId = event.id || event._id || event.newsId || index
                                 const eventType = event.transferType || event.type || 'Unknown'
-                                const eventFrom = event.fromClub || event.from || event.clubFrom || '—'
-                                const eventTo = event.toClub || event.to || event.clubTo || '—'
+                                const eventFrom = event.fromClub || event.from || event.clubFrom || 'Previous club not reported'
+                                const eventTo = event.toClub || event.to || event.clubTo || 'Destination not reported'
                                 const eventDate = event.date || event.publishedAt || event.published || event.createdAt
                                 const eventConfidenceRaw = event.confidence ?? event.confidenceScore ?? event.score ?? null
                                 const eventConfidence =

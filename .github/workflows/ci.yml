@@ -49,6 +49,9 @@ jobs:
           cache: npm
           cache-dependency-path: FootballTransfer.Frontend/package-lock.json
       - run: npm ci
+      - name: Validate extraction evaluation dataset
+        working-directory: .
+        run: node tools/evaluate-extraction.mjs
       - run: npm run lint
       - run: npm test
       - run: npm run build
