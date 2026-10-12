@@ -27,4 +27,5 @@ jobs:
           transfer_id=$(curl --fail --location --silent --show-error --max-time 70 https://football-transfer-api.onrender.com/api/transfers | jq -r '.[0].id')
           curl --fail --location --silent --show-error --max-time 70 "https://football-transfer-api.onrender.com/api/transfers/${transfer_id}" | jq -e 'has("newsContent") | not'
       - name: Check baseline security headers
-        run: curl --fail --location --silent --show-error --max-time 70 --dump-header - --output /dev/null https://football-transfer-api.onrender.com/health | tr -d '\r' | grep --ignore-case --quiet '^x-content-type-options: nosniff$'
+        run: |
+          curl --fail --location --silent --show-error --max-time 70 --dump-header - --output /dev/null https://football-transfer-api.onrender.com/health | tr -d '\r' | grep --ignore-case --quiet '^x-content-type-options: nosniff$'
