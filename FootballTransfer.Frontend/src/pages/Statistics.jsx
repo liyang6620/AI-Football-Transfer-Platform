@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchStats, fetchTransfers } from '../api/transferApi'
+import { getApiErrorMessage } from '../api/axios'
 import '../styles/Statistics.css'
 
 const TYPE_CONFIG = [
@@ -40,7 +41,7 @@ export default function Statistics() {
                     setError('Some statistics could not be loaded.')
                 }
             } catch (e) {
-                if (mounted) setError(e.message || 'Live statistics could not be loaded.')
+                if (mounted) setError(getApiErrorMessage(e, 'Live statistics are temporarily unavailable.'))
             } finally {
                 if (mounted) setLoading(false)
             }

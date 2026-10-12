@@ -10,6 +10,17 @@ const api = axios.create({
 
 export const API_STATE_EVENT = "football-api-state";
 
+export function getApiErrorMessage(error, fallback) {
+    const status = error?.response?.status;
+    const serverTitle = error?.response?.data?.title;
+
+    if (status && status < 500 && typeof serverTitle === "string") {
+        return serverTitle;
+    }
+
+    return fallback;
+}
+
 function publishApiState(state) {
     if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent(API_STATE_EVENT, { detail: state }));

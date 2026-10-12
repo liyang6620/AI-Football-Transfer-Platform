@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { fetchTransfers } from '../api/transferApi'
+import { getApiErrorMessage } from '../api/axios'
 import TransferCard from '../components/TransferCard'
 
 const CATEGORY_MAP = {
@@ -29,7 +30,7 @@ export default function CategoryTransfers() {
         if (!mounted) return
         setItems(d || [])
       } catch (e) {
-        if (mounted) setError(e.message)
+        if (mounted) setError(getApiErrorMessage(e, 'This transfer category is temporarily unavailable.'))
       } finally {
         if (mounted) setLoading(false)
       }

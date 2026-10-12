@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchTransfers } from '../api/transferApi'
+import { getApiErrorMessage } from '../api/axios'
 import { Link, useSearchParams } from 'react-router-dom'
 import '../styles/Transfers.css'
 
@@ -56,7 +57,7 @@ export default function Transfers() {
 
                 setItems(d || [])
             } catch (e) {
-                if (mounted) setError(e.message)
+                if (mounted) setError(getApiErrorMessage(e, 'Transfer records are temporarily unavailable.'))
             } finally {
                 if (mounted) setLoading(false)
             }

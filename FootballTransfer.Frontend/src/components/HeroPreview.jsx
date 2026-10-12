@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function HeroPreview({ items = [], formatFee, getTransferBadge }) {
+export default function HeroPreview({ items = [], formatFee, getTransferBadge, loading = false, unavailable = false }) {
     const previewItems = items.slice(0, 3)
 
     return (
@@ -47,7 +47,11 @@ export default function HeroPreview({ items = [], formatFee, getTransferBadge })
 
                 {previewItems.length === 0 && (
                     <div className="preview-empty">
-                        No transfer data yet
+                        {loading
+                            ? 'Loading live transfer data…'
+                            : unavailable
+                                ? 'Live transfer feed is temporarily unavailable.'
+                                : 'No transfer records yet.'}
                     </div>
                 )}
             </div>

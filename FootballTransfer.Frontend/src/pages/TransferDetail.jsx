@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchTransfer, fetchTransfers } from '../api/transferApi'
+import { getApiErrorMessage } from '../api/axios'
 import '../styles/TransferDetail.css'
 
 export default function TransferDetail() {
@@ -41,7 +42,7 @@ export default function TransferDetail() {
 
                 setTimeline(matched)
             } catch (e) {
-                if (mounted) setError(e.message)
+                if (mounted) setError(getApiErrorMessage(e, 'This transfer record is temporarily unavailable.'))
             } finally {
                 if (mounted) setLoading(false)
             }

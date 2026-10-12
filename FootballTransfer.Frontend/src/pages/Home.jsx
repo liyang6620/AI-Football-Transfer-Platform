@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchStats, fetchTransfers } from '../api/transferApi'
+import { getApiErrorMessage } from '../api/axios'
 import { ArrowRight, BarChart3, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import HeroPreview from '../components/HeroPreview'
@@ -34,7 +35,7 @@ export default function Home() {
                     setError('Some live market data could not be loaded.')
                 }
             } catch (e) {
-                if (mounted) setError(e.message || 'Live market data could not be loaded.')
+                if (mounted) setError(getApiErrorMessage(e, 'Live market data is temporarily unavailable.'))
             } finally {
                 if (mounted) setLoading(false)
             }
@@ -132,7 +133,13 @@ export default function Home() {
                             </div>
                             <Link to="/transfers" className="section-link">All transfers <ArrowRight size={15} /></Link>
                         </div>
-                        <HeroPreview items={latest} formatFee={formatFee} getTransferBadge={getTransferBadge} />
+                        <HeroPreview
+                            items={latest}
+                            formatFee={formatFee}
+                            getTransferBadge={getTransferBadge}
+                            loading={loading}
+                            unavailable={dataUnavailable}
+                        />
                     </div>
 
                     <aside className="category-section">

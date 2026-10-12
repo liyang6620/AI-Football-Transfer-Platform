@@ -6,7 +6,27 @@ vi.mock('axios', () => ({
   default: { create: () => ({ get: mocks.get }) },
 }))
 
-import { API_STATE_EVENT, getWithRecovery } from './axios'
+import { API_STATE_EVENT, getApiErrorMessage, getWithRecovery } from './axios'
+
+describe('getApiErrorMessage', () => {
+  it('hides infrastructure error details behind product copy', () => {
+    const message = getApiErrorMessage(
+      { response: { status: 503, data: { title: 'Database unavailable' } } },
+      'Live data is temporarily unavailable.'
+    )
+
+    expect(message).toBe('Live data is temporarily unavailable.')
+  })
+
+  it('uses a safe server title for client errors', () => {
+    const message = getApiErrorMessage(
+      { response: { status: 404, data: { title: 'Transfer not found' } } },
+      'Transfer could not be loaded.'
+    )
+
+    expect(message).toBe('Transfer not found')
+  })
+})
 
 describe('getWithRecovery', () => {
   beforeEach(() => {
