@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import ServiceBanner from './components/ServiceBanner'
 import Home from './pages/Home'
 import Transfers from './pages/Transfers'
 import CategoryTransfers from './pages/CategoryTransfers'
@@ -12,6 +13,7 @@ export default function App() {
   return (
     <div>
       <Navbar />
+      <ServiceBanner />
       <main>
         <Routes>
           <Route path="/" element={<Home />} />

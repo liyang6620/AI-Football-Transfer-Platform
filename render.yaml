@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: football-transfer-api
+    runtime: docker
+    plan: free
+    rootDir: FootballTransfer.Api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AdminApiKey
+        sync: false
+      - key: Database__MigrateOnStartup
+        value: "true"
+      - key: BackgroundJobs__Enabled
+        value: "true"
+      - key: BackgroundJobs__InitialDelaySeconds
+        value: "120"
+      - key: BackgroundJobs__IntervalHours
+        value: "24"
+      - key: BackgroundJobs__BatchSize
+        value: "10"
+      - key: BackgroundJobs__MaxBatchesPerRun
+        value: "2"

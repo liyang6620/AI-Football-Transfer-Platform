@@ -9,6 +9,7 @@ export default function TransferDetail() {
     const [timeline, setTimeline] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [reloadKey, setReloadKey] = useState(0)
 
     useEffect(() => {
         let mounted = true
@@ -17,6 +18,7 @@ export default function TransferDetail() {
         async function load() {
             try {
                 setLoading(true)
+                setError(null)
 
                 const [d, all] = await Promise.all([
                     fetchTransfer(id),
@@ -50,7 +52,7 @@ export default function TransferDetail() {
         return () => {
             mounted = false
         }
-    }, [id])
+    }, [id, reloadKey])
 
     const detail = useMemo(() => {
         if (!item) return null
@@ -80,23 +82,25 @@ export default function TransferDetail() {
                 ? Math.round(Number(confidenceRaw) * 100)
                 : null
 
-        const title = item.title || item.headline || ''
+        const title = item.newsTitle || item.title || item.headline || ''
         const date = item.date || item.publishedAt || item.published || item.createdAt || ''
 
         const summary =
             item.aiSummary ||
             item.summary ||
+            item.newsContent ||
             item.content ||
             'No summary available.'
 
         const content =
+            item.newsContent ||
             item.content ||
             item.body ||
             item.summary ||
             ''
 
-        const source = item.source || item.sourceName || 'Unknown source'
-        const url = item.url || item.sourceUrl || item.link || ''
+        const source = item.newsSource || item.source || item.sourceName || 'Unknown source'
+        const url = item.newsUrl || item.url || item.sourceUrl || item.link || ''
 
         return {
             player,
@@ -174,7 +178,7 @@ export default function TransferDetail() {
     if (error) {
         return (
             <div className="detail-page">
-                <div className="detail-error">{error}</div>
+                <div className="detail-error"><span>{error}</span><button type="button" className="retry-button" onClick={() => setReloadKey((value) => value + 1)}>Retry live data</button></div>
             </div>
         )
     }

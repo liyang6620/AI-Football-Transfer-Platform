@@ -18,6 +18,24 @@ body {
     color: var(--ink);
 }
 
+.service-banner {
+    min-height: 42px;
+    padding: 9px max(24px, calc((100vw - 1320px) / 2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border-bottom: 1px solid #d6c898;
+    background: #fff9df;
+    color: #69520b;
+    font-size: 12px;
+    font-weight: 600;
+}
+.service-banner.unavailable { border-color: #dfb8b8; background: #fff1f1; color: #7e2929; }
+.service-banner button { padding: 5px 9px; border: 1px solid currentColor; border-radius: 3px; background: transparent; color: inherit; font-weight: 650; cursor: pointer; }
+.service-spin { animation: service-spin 1s linear infinite; }
+@keyframes service-spin { to { transform: rotate(360deg); } }
+
 h1, h2, h3, h4, strong, b {
     letter-spacing: 0 !important;
 }
@@ -213,6 +231,8 @@ h1, h2, h3, h4, strong, b {
 .kpi-card span { order: 0; color: var(--muted); font-size: 11px; font-weight: 650; text-transform: uppercase; }
 .kpi-card strong { order: 1; color: var(--ink); font-size: 32px; line-height: 1; font-weight: 600; }
 .home-error { margin-top: 16px; padding: 12px 14px; border-radius: 4px; border: 1px solid #e4b8b8; background: #fff7f7; color: #862b2b; }
+.home-error { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.home-error button, .retry-button { padding: 7px 10px; border: 1px solid currentColor; border-radius: 3px; background: transparent; color: inherit; font-weight: 650; cursor: pointer; }
 
 .home-data-grid { margin-top: 42px; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .72fr); gap: 40px; }
 .latest-section, .category-section { min-width: 0; }
@@ -470,4 +490,6 @@ h1, h2, h3, h4, strong, b {
     .hero-status span:nth-child(3) { display: none; }
     .detail-panel { padding: 18px; }
     .home-footer { padding: 18px 14px; flex-direction: column; align-items: flex-start; gap: 5px; }
+    .service-banner { align-items: flex-start; justify-content: flex-start; flex-wrap: wrap; font-size: 11px; }
+    .home-error { align-items: flex-start; flex-direction: column; }
 }

@@ -1,8 +1,17 @@
 .vs/
 bin/
 obj/
+TestResults/
 
 *.user
 *.suo
 
 appsettings.Development.json
+
+node_modules/
+dist/
+coverage/
+
+.env
+.env.*
+!.env.example

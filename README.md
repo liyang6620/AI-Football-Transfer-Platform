@@ -1,6 +1,6 @@
 # AI Football Transfer Platform
 
-[![CI](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/ci.yml) [![CodeQL](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/liyang6620/AI-Football-Transfer-Platform/actions/workflows/codeql.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Overview
 
@@ -234,19 +234,21 @@ announcements, detailed reports, and weak rumours.
 
 ## REST API
 
-Example endpoints
+Public endpoints include:
 
 ```
-GET /api/news
-
-GET /api/news/search
-
-GET /api/news/{id}
-
+GET /health
+GET /ready
 GET /api/transfers
+GET /api/transfers/{id}
+GET /api/transfers/search?keyword=arsenal
+GET /api/transfers/stats
 ```
 
-The API returns JSON responses suitable for frontend applications.
+`/health` is a process-level liveness check used by the hosting platform.
+`/ready` additionally verifies PostgreSQL connectivity and confirms that all
+Entity Framework migrations have been applied. The API returns structured
+problem details for unhandled server errors.
 
 ---
 
@@ -283,10 +285,33 @@ dotnet run
 ```bash
 cd FootballTransfer.Frontend
 
-npm install
+npm ci --legacy-peer-deps
 
 npm run dev
 ```
+
+The frontend runs at `http://localhost:5173` by default and expects the local
+API at `http://localhost:5262`. Override that address with
+`VITE_API_BASE_URL` when required.
+
+### Verification
+
+Run the same checks enforced by GitHub Actions before opening a pull request:
+
+```bash
+dotnet build AI-Football-Transfer-Platform.slnx --configuration Release --warnaserror
+dotnet test AI-Football-Transfer-Platform.slnx --configuration Release
+
+cd FootballTransfer.Frontend
+npm ci --legacy-peer-deps
+npm run lint
+npm test
+npm run build
+```
+
+Backend integration tests use PostgreSQL when `TEST_POSTGRES_CONNECTION` is
+set. CI provisions a temporary PostgreSQL 16 service and validates that every
+migration can be applied from an empty database.
 
 ---
 
@@ -300,6 +325,14 @@ OPENAI_API_KEY=your_api_key
 ConnectionStrings__DefaultConnection=your_postgresql_connection
 
 AdminApiKey=generate_a_long_random_secret
+
+Database__MigrateOnStartup=true
+
+BackgroundJobs__Enabled=true
+BackgroundJobs__InitialDelaySeconds=120
+BackgroundJobs__IntervalHours=24
+BackgroundJobs__BatchSize=10
+BackgroundJobs__MaxBatchesPerRun=2
 ```
 
 Administrative endpoints under `/api/ai`, `/api/crawler`, and write operations
@@ -326,17 +359,20 @@ The live application uses free tiers from three providers:
 | ASP.NET Core API | Render | Free web service | https://football-transfer-api.onrender.com |
 | PostgreSQL | Supabase | Free | Private database connection |
 
-No paid resource is required for a small portfolio deployment. Free-tier
-limits still apply: Render services spin down after inactivity and may take
-50 seconds or longer to wake, while inactive Supabase projects may be paused
-and need to be resumed from the Supabase dashboard.
+The web hosting and database can run on free tiers for a small portfolio demo.
+OpenAI API usage is billed separately and must be protected with processing
+limits. Free-tier limits still apply: Render services spin down after
+inactivity and may take 50 seconds or longer to wake, while inactive Supabase
+projects may be paused and need to be resumed from the Supabase dashboard.
 
 ### 1. Create the Supabase Database
 
 1. Create a free Supabase project in a region close to the Render service.
 2. Open **Connect**, select the transaction pooler connection, and copy the
    PostgreSQL connection details.
-3. Apply the Entity Framework migrations from a trusted local environment:
+3. The API applies pending Entity Framework migrations during startup by
+   default. To apply them manually from a trusted local environment instead,
+   set `Database__MigrateOnStartup=false` and run:
 
 ```bash
 cd FootballTransfer.Api
@@ -371,9 +407,9 @@ AdminApiKey=<long random value>
 ```
 
 Render automatically uses the repository's `Dockerfile` and listens on port
-`8080`. The image enables polling-based .NET file watching to remain within
-the Render free container's `inotify` limits. After deployment, verify
-`GET /api/transfers` returns HTTP 200.
+`8080`. The blueprint in `render.yaml` configures `/health` as the hosting
+health check and limits each background-processing run. After deployment,
+verify `/health`, `/ready`, and `/api/transfers` return HTTP 200.
 
 ### 3. Deploy the Frontend to Cloudflare Pages
 
@@ -394,6 +430,10 @@ VITE_API_BASE_URL=https://football-transfer-api.onrender.com
 
 Both Render and Cloudflare Pages automatically redeploy after changes are
 pushed to `main`.
+
+The browser client allows 30 seconds for a request and retries one transient
+network or gateway failure. During a Render cold start it shows an explicit
+waking state; failed data is never presented as a genuine zero-value result.
 
 ### Administrative Endpoints
 
@@ -424,6 +464,8 @@ values into public browser bundles.
 ### Free-Tier Troubleshooting
 
 - A slow first request usually means the Render free service is waking up.
+- `/health` returning 200 while `/ready` returns 503 means the API process is
+  running but PostgreSQL is unavailable or its schema is not current.
 - PostgreSQL `tenant/user not found` errors usually mean the Supabase project
   is paused. Resume it from the Supabase project dashboard.
 - A `401` response from an administrative endpoint means the
@@ -441,13 +483,11 @@ Several enhancements are planned for future versions:
 - Club profile pages
 - Player and club images
 - Transfer timeline visualization
-- Interactive statistics dashboard
-- Multi-source news aggregation
 - AI confidence explanation
-- User authentication
-- Favourite players
-- Email notifications
-- Mobile responsive optimization
+- Curated extraction-evaluation dataset
+- Pagination and response caching for larger datasets
+- Centralized production logging and alerting
+- User accounts, favourites and notifications
 
 ---
 

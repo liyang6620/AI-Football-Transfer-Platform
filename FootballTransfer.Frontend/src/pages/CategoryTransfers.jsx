@@ -17,12 +17,14 @@ export default function CategoryTransfers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let mounted = true
     async function load() {
       try {
         setLoading(true)
+        setError(null)
         const d = await fetchTransfers()
         if (!mounted) return
         setItems(d || [])
@@ -34,7 +36,7 @@ export default function CategoryTransfers() {
     }
     load()
     return () => { mounted = false }
-  }, [])
+  }, [reloadKey])
 
   const filtered = useMemo(() => {
     const desired = (cfg.match || '').toLowerCase()
@@ -64,7 +66,7 @@ export default function CategoryTransfers() {
       </div>
 
       {loading && <div className="loading">Loading…</div>}
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error">{error} <button type="button" className="retry-button" onClick={() => setReloadKey((value) => value + 1)}>Retry</button></div>}
 
       <div className="news-list">
         {filtered.map((it) => (
@@ -73,7 +75,7 @@ export default function CategoryTransfers() {
             <div className="card-actions"><Link to={`/transfer/${it.id || it._id || it.newsId}`} className="view-btn">View Details</Link></div>
           </div>
         ))}
-        {filtered.length === 0 && !loading && <div className="empty muted">No items found.</div>}
+        {filtered.length === 0 && !loading && !error && <div className="empty muted">No items found.</div>}
       </div>
     </div>
   )

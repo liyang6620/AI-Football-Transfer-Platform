@@ -12,6 +12,7 @@ namespace FootballTransfer.Api
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllers();
+            builder.Services.AddProblemDetails();
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -45,11 +46,28 @@ namespace FootballTransfer.Api
             });
             var app = builder.Build();
 
+            if (builder.Configuration.GetValue("Database:MigrateOnStartup", true))
+            {
+                using var scope = app.Services.CreateScope();
+                var database = scope.ServiceProvider.GetRequiredService<FootballTransferDbContext>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                try
+                {
+                    database.Database.Migrate();
+                    logger.LogInformation("Database migrations are up to date.");
+                }
+                catch (Exception exception)
+                {
+                    logger.LogError(exception, "Database migration failed. The API will stay online and report not ready.");
+                }
+            }
+
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
             }
 
+            app.UseExceptionHandler();
             app.UseHttpsRedirection();
             app.UseCors("Frontend");
             app.UseMiddleware<AdminApiKeyMiddleware>();

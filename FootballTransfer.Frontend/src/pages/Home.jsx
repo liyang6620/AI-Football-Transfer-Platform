@@ -4,13 +4,14 @@ import { ArrowRight, BarChart3, ChevronRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import HeroPreview from '../components/HeroPreview'
 import '../styles/Home.css'
-import heroImg from '../img/hero.png'
+import heroImg from '../img/hero.webp'
 
 export default function Home() {
     const [stats, setStats] = useState(null)
     const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [reloadKey, setReloadKey] = useState(0)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -18,22 +19,31 @@ export default function Home() {
         async function load() {
             try {
                 setLoading(true)
-                const [summary, transfers] = await Promise.all([
-                    fetchStats().catch(() => null),
-                    fetchTransfers().catch(() => [])
+                setError(null)
+                const [statsResult, transfersResult] = await Promise.allSettled([
+                    fetchStats(),
+                    fetchTransfers()
                 ])
                 if (!mounted) return
-                setStats(summary)
-                setItems(transfers || [])
+                if (statsResult.status === 'rejected' && transfersResult.status === 'rejected') {
+                    throw transfersResult.reason
+                }
+                setStats(statsResult.status === 'fulfilled' ? statsResult.value : null)
+                setItems(transfersResult.status === 'fulfilled' ? transfersResult.value || [] : [])
+                if (statsResult.status === 'rejected' || transfersResult.status === 'rejected') {
+                    setError('Some live market data could not be loaded.')
+                }
             } catch (e) {
-                if (mounted) setError(e.message)
+                if (mounted) setError(e.message || 'Live market data could not be loaded.')
             } finally {
                 if (mounted) setLoading(false)
             }
         }
         load()
         return () => { mounted = false }
-    }, [])
+    }, [reloadKey])
+
+    const dataUnavailable = Boolean(error && !stats && items.length === 0)
 
     const latest = useMemo(() => items.slice().sort((a, b) => {
         const da = new Date(a.date || a.publishedAt || a.published || 0).getTime()
@@ -61,18 +71,18 @@ export default function Home() {
     }
 
     const statCards = [
-        { label: 'Records tracked', value: stats?.totalTransfers ?? 0 },
-        { label: 'Official deals', value: stats?.completedTransfers ?? 0 },
-        { label: 'Active rumours', value: stats?.rumours ?? 0 },
-        { label: 'Contract updates', value: stats?.contracts ?? 0 },
-        { label: 'Free transfers', value: stats?.freeTransfers ?? 0 }
+        { label: 'Records tracked', value: stats?.totalTransfers ?? (dataUnavailable ? null : items.length) },
+        { label: 'Official deals', value: stats?.completedTransfers ?? null },
+        { label: 'Active rumours', value: stats?.rumours ?? null },
+        { label: 'Contract updates', value: stats?.contracts ?? null },
+        { label: 'Free transfers', value: stats?.freeTransfers ?? null }
     ]
 
     const categories = [
-        { title: 'Official deals', desc: 'Completed and confirmed moves', link: '/transfers?cat=official', count: stats?.completedTransfers ?? 0 },
-        { title: 'Rumours', desc: 'Reported moves awaiting confirmation', link: '/transfers?cat=rumours', count: stats?.rumours ?? 0 },
-        { title: 'Contracts', desc: 'Renewals and extensions', link: '/transfers?cat=contracts', count: stats?.contracts ?? 0 },
-        { title: 'Free transfers', desc: 'Moves completed without a fee', link: '/transfers?cat=free', count: stats?.freeTransfers ?? 0 }
+        { title: 'Official deals', desc: 'Completed and confirmed moves', link: '/transfers?cat=official', count: stats?.completedTransfers ?? null },
+        { title: 'Rumours', desc: 'Reported moves awaiting confirmation', link: '/transfers?cat=rumours', count: stats?.rumours ?? null },
+        { title: 'Contracts', desc: 'Renewals and extensions', link: '/transfers?cat=contracts', count: stats?.contracts ?? null },
+        { title: 'Free transfers', desc: 'Moves completed without a fee', link: '/transfers?cat=free', count: stats?.freeTransfers ?? null }
     ]
 
     return (
@@ -106,12 +116,12 @@ export default function Home() {
                     {statCards.map((stat) => (
                         <div className="kpi-card" key={stat.label}>
                             <span>{stat.label}</span>
-                            <strong>{loading ? '—' : stat.value}</strong>
+                            <strong>{loading || stat.value === null ? '—' : stat.value}</strong>
                         </div>
                     ))}
                 </section>
 
-                {error && <div className="home-error">Market data is temporarily unavailable.</div>}
+                {error && <div className="home-error"><span>{error}</span><button type="button" onClick={() => setReloadKey((value) => value + 1)}>Retry live data</button></div>}
 
                 <section className="home-data-grid">
                     <div className="latest-section">
@@ -135,7 +145,7 @@ export default function Home() {
                         <div className="category-strip">
                             {categories.map((category) => (
                                 <Link to={category.link} className="category-pill" key={category.title}>
-                                    <span className="category-count">{category.count}</span>
+                                    <span className="category-count">{category.count ?? '—'}</span>
                                     <span className="category-copy">
                                         <strong>{category.title}</strong>
                                         <small>{category.desc}</small>

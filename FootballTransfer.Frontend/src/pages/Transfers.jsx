@@ -31,6 +31,7 @@ export default function Transfers() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [sortBy, setSortBy] = useState('newest')
+    const [reloadKey, setReloadKey] = useState(0)
 
     const [params, setParams] = useSearchParams()
 
@@ -48,6 +49,7 @@ export default function Transfers() {
         async function load() {
             try {
                 setLoading(true)
+                setError(null)
                 const d = await fetchTransfers()
 
                 if (!mounted) return
@@ -65,7 +67,7 @@ export default function Transfers() {
         return () => {
             mounted = false
         }
-    }, [])
+    }, [reloadKey])
 
     const filtered = useMemo(() => {
         const base = isGlobalSearch
@@ -264,7 +266,7 @@ export default function Transfers() {
                 </div>
             </section>
 
-            {error && <div className="transfer-error">{error}</div>}
+            {error && <div className="transfer-error"><span>{error}</span><button type="button" className="retry-button" onClick={() => setReloadKey((value) => value + 1)}>Retry live data</button></div>}
 
             <section className="transfer-feed">
                 <div className="feed-header">
@@ -295,7 +297,7 @@ export default function Transfers() {
                         <span>Date</span>
                     </div>
 
-                    {filtered.map((it) => {
+                    {!error && filtered.map((it) => {
                         const id = it.id || it._id || it.newsId
                         const player = it.player || it.playerName || it.title || 'Unknown Player'
                         const from = it.fromClub || it.from || it.clubFrom || 'Unknown'
@@ -334,6 +336,8 @@ export default function Transfers() {
                             </Link>
                         )
                     })}
+
+                    {!loading && !error && filtered.length === 0 && <div className="transfer-empty">No matching transfer records.</div>}
 
                     {loading && (
                         <div className="transfer-state">

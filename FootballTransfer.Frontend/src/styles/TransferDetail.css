@@ -415,3 +415,16 @@
         display: none;
     }
 }
+.detail-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+@media (max-width: 640px) {
+    .detail-error {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

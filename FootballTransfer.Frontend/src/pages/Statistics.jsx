@@ -14,6 +14,7 @@ export default function Statistics() {
     const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [reloadKey, setReloadKey] = useState(0)
 
     useEffect(() => {
         let mounted = true
@@ -21,18 +22,25 @@ export default function Statistics() {
         async function load() {
             try {
                 setLoading(true)
+                setError(null)
 
-                const [s, t] = await Promise.all([
-                    fetchStats().catch(() => null),
-                    fetchTransfers().catch(() => [])
+                const [statsResult, transfersResult] = await Promise.allSettled([
+                    fetchStats(),
+                    fetchTransfers()
                 ])
 
                 if (!mounted) return
 
-                setStats(s)
-                setItems(t || [])
+                if (statsResult.status === 'rejected' && transfersResult.status === 'rejected') {
+                    throw transfersResult.reason
+                }
+                setStats(statsResult.status === 'fulfilled' ? statsResult.value : null)
+                setItems(transfersResult.status === 'fulfilled' ? transfersResult.value || [] : [])
+                if (statsResult.status === 'rejected' || transfersResult.status === 'rejected') {
+                    setError('Some statistics could not be loaded.')
+                }
             } catch (e) {
-                if (mounted) setError(e.message)
+                if (mounted) setError(e.message || 'Live statistics could not be loaded.')
             } finally {
                 if (mounted) setLoading(false)
             }
@@ -43,7 +51,7 @@ export default function Statistics() {
         return () => {
             mounted = false
         }
-    }, [])
+    }, [reloadKey])
 
     const computed = useMemo(() => {
         const total = stats?.totalTransfers ?? items.length
@@ -93,17 +101,16 @@ export default function Statistics() {
             return !Number.isNaN(fee) && fee > 0
         })
 
-        const totalKnownFees = knownFeeItems.reduce((sum, it) => {
-            return sum + Number(it.estimatedFee ?? it.fee)
-        }, 0)
-
-        const averageKnownFee = knownFeeItems.length
-            ? totalKnownFees / knownFeeItems.length
-            : 0
-
-        const highestFee = knownFeeItems.length
-            ? Math.max(...knownFeeItems.map((it) => Number(it.estimatedFee ?? it.fee)))
-            : 0
+        const feesByCurrency = Object.values(knownFeeItems.reduce((groups, item) => {
+            const currency = (item.feeCurrency || 'UNSPECIFIED').toUpperCase()
+            const amount = Number(item.estimatedFee ?? item.fee)
+            const group = groups[currency] || { currency, count: 0, total: 0, highest: 0 }
+            group.count += 1
+            group.total += amount
+            group.highest = Math.max(group.highest, amount)
+            groups[currency] = group
+            return groups
+        }, {})).map((group) => ({ ...group, average: group.total / group.count }))
 
         const undisclosedCount = items.filter((it) => {
             const fee = it.estimatedFee ?? it.fee
@@ -154,9 +161,7 @@ export default function Statistics() {
             highestConfidence,
             highConfidenceCount,
             lowConfidenceCount,
-            totalKnownFees,
-            averageKnownFee,
-            highestFee,
+            feesByCurrency,
             undisclosedCount,
             knownFeeCount: knownFeeItems.length,
             topDestinationClubs,
@@ -169,17 +174,20 @@ export default function Statistics() {
         return `${Math.round(Number(value || 0) * 100)}%`
     }
 
-    function fee(value) {
-        if (!value) return '£0m'
-        return `£${Number(value).toFixed(value >= 10 ? 1 : 2)}m`
+    function fee(value, currency) {
+        const symbols = { GBP: '£', EUR: '€', USD: '$' }
+        const amount = Number(value).toFixed(value >= 10 ? 1 : 2)
+        return `${symbols[currency] || `${currency} `}${amount}m`
     }
 
+    const dataUnavailable = Boolean(error && !stats && items.length === 0)
+
     const overviewCards = [
-        { label: 'Total Transfers', value: computed.total },
-        { label: 'Official Deals', value: computed.typeCounts.find((x) => x.key === 'official')?.count ?? 0 },
-        { label: 'Rumours', value: computed.typeCounts.find((x) => x.key === 'rumours')?.count ?? 0 },
-        { label: 'Contracts', value: computed.typeCounts.find((x) => x.key === 'contracts')?.count ?? 0 },
-        { label: 'Free Transfers', value: computed.typeCounts.find((x) => x.key === 'free')?.count ?? 0 },
+        { label: 'Total Transfers', value: dataUnavailable ? null : computed.total },
+        { label: 'Official Deals', value: dataUnavailable ? null : computed.typeCounts.find((x) => x.key === 'official')?.count ?? 0 },
+        { label: 'Rumours', value: dataUnavailable ? null : computed.typeCounts.find((x) => x.key === 'rumours')?.count ?? 0 },
+        { label: 'Contracts', value: dataUnavailable ? null : computed.typeCounts.find((x) => x.key === 'contracts')?.count ?? 0 },
+        { label: 'Free Transfers', value: dataUnavailable ? null : computed.typeCounts.find((x) => x.key === 'free')?.count ?? 0 },
     ]
 
     return (
@@ -200,12 +208,12 @@ export default function Statistics() {
                 </div>
             </section>
 
-            {error && <div className="statistics-error">{error}</div>}
+            {error && <div className="statistics-error"><span>{error}</span><button type="button" className="retry-button" onClick={() => setReloadKey((value) => value + 1)}>Retry live data</button></div>}
 
             <section className="statistics-kpi-grid">
                 {overviewCards.map((card) => (
                     <div className="statistics-kpi-card" key={card.label}>
-                        <strong>{card.value}</strong>
+                        <strong>{card.value ?? '—'}</strong>
                         <span>{card.label}</span>
                     </div>
                 ))}
@@ -213,7 +221,7 @@ export default function Statistics() {
 
             {loading && <div className="statistics-state">Loading statistics…</div>}
 
-            <section className="statistics-grid">
+            {!dataUnavailable && <section className="statistics-grid">
                 <div className="statistics-panel">
                     <div className="panel-head">
                         <div>
@@ -280,31 +288,25 @@ export default function Statistics() {
                     </div>
 
                     <div className="fee-grid">
-                        <div className="fee-main">
-                            <span>Total Known Fees</span>
-                            <strong>{fee(computed.totalKnownFees)}</strong>
-                        </div>
-
                         <div className="fee-list">
                             <div>
                                 <span>Known Fee Records</span>
                                 <strong>{computed.knownFeeCount}</strong>
                             </div>
-
-                            <div>
-                                <span>Average Known Fee</span>
-                                <strong>{fee(computed.averageKnownFee)}</strong>
-                            </div>
-
-                            <div>
-                                <span>Highest Fee</span>
-                                <strong>{fee(computed.highestFee)}</strong>
-                            </div>
-
                             <div>
                                 <span>Undisclosed Fees</span>
                                 <strong>{computed.undisclosedCount}</strong>
                             </div>
+                        </div>
+                        <div className="currency-fee-list">
+                            {computed.feesByCurrency.map((group) => (
+                                <div key={group.currency}>
+                                    <span><b>{group.currency}</b>{group.count} reported fee{group.count === 1 ? '' : 's'}</span>
+                                    <strong>{fee(group.total, group.currency)} total</strong>
+                                    <small>{fee(group.average, group.currency)} average · {fee(group.highest, group.currency)} highest</small>
+                                </div>
+                            ))}
+                            {computed.feesByCurrency.length === 0 && <div className="statistics-empty">No disclosed fee data.</div>}
                         </div>
                     </div>
                 </div>
@@ -347,7 +349,7 @@ export default function Statistics() {
                         )}
                     </div>
                 </div>
-            </section>
+            </section>}
         </div>
     )
 }
