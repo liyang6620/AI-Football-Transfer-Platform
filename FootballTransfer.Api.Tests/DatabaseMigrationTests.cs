@@ -16,6 +16,7 @@ public sealed class DatabaseMigrationTests
         Assert.Contains("20261012030000_HardenPublicSchemaAndCorrectFees", context.Database.GetMigrations());
         Assert.Contains("20261012030001_AddEventAggregationAndSourceStatus", context.Database.GetMigrations());
         Assert.Contains("20261020222213_AddLoanFlag", context.Database.GetMigrations());
+        Assert.Contains("20261020233312_AddEvidenceRebuildMaintenanceJob", context.Database.GetMigrations());
     }
 
     [Fact]

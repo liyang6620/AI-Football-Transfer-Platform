@@ -36,6 +36,7 @@ namespace FootballTransfer.Api
             builder.Services.AddHostedService<NewsBackgroundService>();
             builder.Services.AddOpenApi();
             builder.Services.AddScoped<AiAnalysisService>();
+            builder.Services.AddScoped<DataMaintenanceService>();
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("Frontend", policy =>

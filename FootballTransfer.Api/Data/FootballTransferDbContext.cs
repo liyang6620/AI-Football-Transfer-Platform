@@ -15,6 +15,7 @@ public class FootballTransferDbContext : DbContext
     public DbSet<Club> Clubs { get; set; }
     public DbSet<Transfer> Transfers { get; set; }
     public DbSet<SourceSyncState> SourceSyncStates { get; set; }
+    public DbSet<DataMaintenanceJob> DataMaintenanceJobs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,10 @@ public class FootballTransferDbContext : DbContext
 
         modelBuilder.Entity<SourceSyncState>()
             .HasIndex(s => s.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<DataMaintenanceJob>()
+            .HasIndex(job => job.Name)
             .IsUnique();
     }
 }

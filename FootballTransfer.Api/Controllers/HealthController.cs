@@ -1,4 +1,5 @@
 using FootballTransfer.Api.Data;
+using FootballTransfer.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,5 +67,26 @@ public sealed class HealthController : ControllerBase
                 dependency = "postgresql"
             });
         }
+    }
+
+    [HttpGet("maintenance/status")]
+    public async Task<IActionResult> MaintenanceStatus(CancellationToken cancellationToken)
+    {
+        var job = await _dbContext.DataMaintenanceJobs
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Name == DataMaintenanceService.EvidenceRebuildJob,
+                cancellationToken);
+
+        var remaining = await _dbContext.TransferNews
+            .CountAsync(news => !news.IsProcessed, cancellationToken);
+
+        return Ok(new
+        {
+            status = job?.Status ?? "NotScheduled",
+            processed = job?.ItemsProcessed ?? 0,
+            remaining,
+            completedAt = job?.CompletedAt
+        });
     }
 }

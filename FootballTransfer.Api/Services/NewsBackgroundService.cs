@@ -44,8 +44,11 @@ public class NewsBackgroundService : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
 
+                var maintenanceService = scope.ServiceProvider.GetRequiredService<DataMaintenanceService>();
                 var crawlerService = scope.ServiceProvider.GetRequiredService<NewsCrawlerService>();
                 var aiAnalysisService = scope.ServiceProvider.GetRequiredService<AiAnalysisService>();
+
+                await maintenanceService.RunPendingAsync(stoppingToken);
 
                 _logger.LogInformation("Starting scheduled news crawling...");
 
