@@ -6,6 +6,8 @@ namespace FootballTransfer.Api.Services;
 
 public class AiAnalysisService
 {
+    public sealed record MaintenanceBatchResult(int Attempted, int Successful, int Quarantined);
+
     private readonly FootballTransferDbContext _context;
     private readonly OpenAiAnalysisService _openAiService;
     private readonly ArticleContentService _articleContentService;
@@ -181,6 +183,77 @@ public class AiAnalysisService
         await _context.SaveChangesAsync();
 
         return processedCount;
+    }
+
+    public async Task<MaintenanceBatchResult> ProcessMaintenanceBatchAsync(
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var newsIds = await _context.TransferNews
+            .Where(news => !news.IsProcessed)
+            .OrderByDescending(news => news.PublishedAt)
+            .Select(news => news.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var successful = 0;
+        var quarantined = 0;
+
+        foreach (var newsId in newsIds)
+        {
+            var completed = false;
+
+            for (var attempt = 1; attempt <= 3 && !completed; attempt++)
+            {
+                try
+                {
+                    var news = await _context.TransferNews.FindAsync([newsId], cancellationToken);
+                    if (news is null || news.IsProcessed)
+                    {
+                        completed = true;
+                        continue;
+                    }
+
+                    await ProcessSingleNews(news);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    successful++;
+                    completed = true;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogWarning(
+                        exception,
+                        "Maintenance processing attempt {Attempt}/3 failed for news item {NewsId}.",
+                        attempt,
+                        newsId);
+                    _context.ChangeTracker.Clear();
+
+                    if (attempt < 3)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(15 * attempt), cancellationToken);
+                        continue;
+                    }
+
+                    var failedNews = await _context.TransferNews.FindAsync([newsId], cancellationToken);
+                    if (failedNews is not null)
+                    {
+                        MarkAsNotTransfer(failedNews, failedNews.Content);
+                        failedNews.AiSummary =
+                            "Automated extraction was unavailable after three attempts; this report was withheld.";
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+
+                    quarantined++;
+                    completed = true;
+                }
+            }
+        }
+
+        return new MaintenanceBatchResult(newsIds.Count, successful, quarantined);
     }
 
     private async Task ProcessSingleNews(TransferNews news)

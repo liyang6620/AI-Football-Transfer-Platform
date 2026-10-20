@@ -9,7 +9,6 @@ public sealed class DataMaintenanceService
     public const string EvidenceRebuildJob = "transfer-evidence-rebuild-2026-10-21";
     private const int BatchSize = 20;
     private const int MaxBatches = 100;
-    private const int MaxStalledBatches = 3;
 
     private readonly FootballTransferDbContext _context;
     private readonly AiAnalysisService _aiAnalysisService;
@@ -44,29 +43,37 @@ public sealed class DataMaintenanceService
 
         try
         {
-            var stalledBatches = 0;
+            var quarantined = 0;
             for (var batch = 1; batch <= MaxBatches; batch++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var processed = await _aiAnalysisService.ProcessUnprocessedLimitAsync(BatchSize);
-                job.ItemsProcessed += processed;
+                var result = await _aiAnalysisService.ProcessMaintenanceBatchAsync(
+                    BatchSize,
+                    cancellationToken);
+                job.ItemsProcessed += result.Attempted;
+                quarantined += result.Quarantined;
 
                 var remaining = await _context.TransferNews
                     .CountAsync(news => !news.IsProcessed, cancellationToken);
 
                 await _context.SaveChangesAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Maintenance job {JobName} batch {Batch} processed {Processed}; {Remaining} remain.",
+                    "Maintenance job {JobName} batch {Batch} attempted {Attempted}, completed {Successful}, quarantined {Quarantined}; {Remaining} remain.",
                     job.Name,
                     batch,
-                    processed,
+                    result.Attempted,
+                    result.Successful,
+                    result.Quarantined,
                     remaining);
 
                 if (remaining == 0)
                 {
                     job.Status = "Completed";
                     job.CompletedAt = DateTime.UtcNow;
+                    job.LastError = quarantined == 0
+                        ? null
+                        : $"Withheld {quarantined} reports after repeated extraction failures.";
                     await _context.SaveChangesAsync(cancellationToken);
                     _logger.LogInformation(
                         "Completed data maintenance job {JobName}; processed {Processed} items.",
@@ -75,20 +82,11 @@ public sealed class DataMaintenanceService
                     return true;
                 }
 
-                if (processed == 0)
+                if (result.Attempted == 0)
                 {
-                    stalledBatches++;
-                    if (stalledBatches >= MaxStalledBatches)
-                    {
-                        throw new InvalidOperationException(
-                            $"Maintenance job made no progress with {remaining} items remaining.");
-                    }
-
-                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
-                    continue;
+                    throw new InvalidOperationException(
+                        $"Maintenance job made no progress with {remaining} items remaining.");
                 }
-
-                stalledBatches = 0;
             }
 
             throw new InvalidOperationException(
