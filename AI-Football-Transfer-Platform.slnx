@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="FootballTransfer.Api/FootballTransfer.Api.csproj" />
   <Project Path="FootballTransfer.Api.Tests/FootballTransfer.Api.Tests.csproj" />
+  <Project Path="FootballTransfer.Eval/FootballTransfer.Eval.csproj" />
 </Solution>
