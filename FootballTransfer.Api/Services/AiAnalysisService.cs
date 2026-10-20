@@ -6,7 +6,7 @@ namespace FootballTransfer.Api.Services;
 
 public class AiAnalysisService
 {
-    public sealed record MaintenanceBatchResult(int Attempted, int Successful, int Quarantined);
+    public sealed record MaintenanceBatchResult(int Attempted, int Successful);
 
     private readonly FootballTransferDbContext _context;
     private readonly OpenAiAnalysisService _openAiService;
@@ -197,8 +197,6 @@ public class AiAnalysisService
             .ToListAsync(cancellationToken);
 
         var successful = 0;
-        var quarantined = 0;
-
         foreach (var newsId in newsIds)
         {
             var completed = false;
@@ -238,22 +236,14 @@ public class AiAnalysisService
                         continue;
                     }
 
-                    var failedNews = await _context.TransferNews.FindAsync([newsId], cancellationToken);
-                    if (failedNews is not null)
-                    {
-                        MarkAsNotTransfer(failedNews, failedNews.Content);
-                        failedNews.AiSummary =
-                            "Automated extraction was unavailable after three attempts; this report was withheld.";
-                        await _context.SaveChangesAsync(cancellationToken);
-                    }
-
-                    quarantined++;
-                    completed = true;
+                    throw new InvalidOperationException(
+                        $"Maintenance extraction failed three times for news item {newsId}.",
+                        exception);
                 }
             }
         }
 
-        return new MaintenanceBatchResult(newsIds.Count, successful, quarantined);
+        return new MaintenanceBatchResult(newsIds.Count, successful);
     }
 
     private async Task ProcessSingleNews(TransferNews news)

@@ -37,13 +37,22 @@ public sealed class DataMaintenanceService
         job.Status = "Running";
         job.StartedAt ??= DateTime.UtcNow;
         job.LastError = null;
+
+        await _context.TransferNews
+            .Where(news => news.AiSummary ==
+                "Automated extraction was unavailable after three attempts; this report was withheld.")
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(news => news.IsProcessed, false)
+                .SetProperty(news => news.AiSummary, (string?)null)
+                .SetProperty(news => news.TransferType, (string?)null),
+                cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Starting data maintenance job {JobName}.", job.Name);
 
         try
         {
-            var quarantined = 0;
             for (var batch = 1; batch <= MaxBatches; batch++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -52,28 +61,24 @@ public sealed class DataMaintenanceService
                     BatchSize,
                     cancellationToken);
                 job.ItemsProcessed += result.Attempted;
-                quarantined += result.Quarantined;
 
                 var remaining = await _context.TransferNews
                     .CountAsync(news => !news.IsProcessed, cancellationToken);
 
                 await _context.SaveChangesAsync(cancellationToken);
                 _logger.LogInformation(
-                    "Maintenance job {JobName} batch {Batch} attempted {Attempted}, completed {Successful}, quarantined {Quarantined}; {Remaining} remain.",
+                    "Maintenance job {JobName} batch {Batch} attempted {Attempted}, completed {Successful}; {Remaining} remain.",
                     job.Name,
                     batch,
                     result.Attempted,
                     result.Successful,
-                    result.Quarantined,
                     remaining);
 
                 if (remaining == 0)
                 {
                     job.Status = "Completed";
                     job.CompletedAt = DateTime.UtcNow;
-                    job.LastError = quarantined == 0
-                        ? null
-                        : $"Withheld {quarantined} reports after repeated extraction failures.";
+                    job.LastError = null;
                     await _context.SaveChangesAsync(cancellationToken);
                     _logger.LogInformation(
                         "Completed data maintenance job {JobName}; processed {Processed} items.",
