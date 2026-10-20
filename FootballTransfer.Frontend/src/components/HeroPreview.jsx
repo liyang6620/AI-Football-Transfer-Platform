@@ -19,7 +19,7 @@ export default function HeroPreview({ items = [], formatFee, getTransferBadge, l
                     const player = it.player || it.playerName || it.title || 'Unknown Player'
                     const from = it.fromClub || it.from || it.clubFrom || 'Previous club not reported'
                     const to = it.toClub || it.to || it.clubTo || 'Destination not reported'
-                    const fee = formatFee(it.estimatedFee ?? it.fee, it.feeCurrency)
+                    const fee = formatFee(it.estimatedFee ?? it.fee, it.feeCurrency, it.isLoan)
                     const badge = getTransferBadge(it.transferType || it.type)
                     const confPct = Math.round(Number(it.confidence ?? 0) * 100)
 

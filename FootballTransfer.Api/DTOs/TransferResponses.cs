@@ -17,6 +17,8 @@ public sealed record TransferResponse(
     string? TransferType,
     decimal? EstimatedFee,
     string? FeeCurrency,
+    bool IsLoan,
+    bool IsLoanFee,
     double? Confidence,
     DateTime PublishedAt,
     DateTime CreatedAt,

@@ -52,9 +52,9 @@ export default function Home() {
         return db - da
     }).slice(0, 5), [items])
 
-    function formatFee(fee, currency) {
+    function formatFee(fee, currency, isLoan) {
         if (fee === 0) return 'Free'
-        if (!fee) return 'Undisclosed'
+        if (fee === null || fee === undefined) return isLoan ? 'Loan' : 'Undisclosed'
         const cur = (currency || '').toUpperCase()
         if (cur === 'GBP' || cur === '£') return `£${fee}m`
         if (cur === 'EUR' || cur === '€') return `€${fee}m`

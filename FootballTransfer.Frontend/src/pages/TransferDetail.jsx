@@ -69,6 +69,7 @@ export default function TransferDetail() {
 
         const currency = item.feeCurrency || item.currency || ''
         const type = item.transferType || item.type || 'Unknown'
+        const isLoan = Boolean(item.isLoan)
 
         const confidenceRaw =
             item.confidence ??
@@ -108,6 +109,7 @@ export default function TransferDetail() {
             estimatedFee,
             currency,
             type,
+            isLoan,
             confidencePercent,
             title,
             date,
@@ -124,8 +126,8 @@ export default function TransferDetail() {
         return record.player || record.playerName || record.title || 'Unknown'
     }
 
-    function formatFee(estimatedFee, feeCurrency) {
-        if (estimatedFee === null || estimatedFee === undefined) return 'Undisclosed'
+    function formatFee(estimatedFee, feeCurrency, isLoan) {
+        if (estimatedFee === null || estimatedFee === undefined) return isLoan ? 'Loan' : 'Undisclosed'
 
         const rounded =
             typeof estimatedFee === 'number'
@@ -210,7 +212,8 @@ export default function TransferDetail() {
 
                     <div className="detail-meta-row">
                         <span className={badgeClass(detail.type)}>{detail.type}</span>
-                        <span>{formatFee(detail.estimatedFee, detail.currency)}</span>
+                        {detail.isLoan && <span className="detail-badge loan">Loan</span>}
+                        <span>{formatFee(detail.estimatedFee, detail.currency, detail.isLoan)}</span>
                         <span>{detail.date ? new Date(detail.date).toLocaleString() : 'No date'}</span>
                     </div>
                 </div>
@@ -293,7 +296,7 @@ export default function TransferDetail() {
                                             <p className="timeline-summary">{getTimelineSummary(event)}</p>
 
                                             <div className="timeline-meta">
-                                                <span>{formatFee(event.estimatedFee ?? event.fee, event.feeCurrency)}</span>
+                                                <span>{formatFee(event.estimatedFee ?? event.fee, event.feeCurrency, event.isLoan)}</span>
                                                 <span>{eventConfidence !== null ? `${eventConfidence}% confidence` : 'N/A confidence'}</span>
                                                 <Link to={`/transfer/${eventId}`}>View record</Link>
                                             </div>
@@ -339,7 +342,7 @@ export default function TransferDetail() {
 
                             <div>
                                 <span>Fee</span>
-                                <strong>{formatFee(detail.estimatedFee, detail.currency)}</strong>
+                                <strong>{formatFee(detail.estimatedFee, detail.currency, detail.isLoan)}</strong>
                             </div>
 
                             <div>

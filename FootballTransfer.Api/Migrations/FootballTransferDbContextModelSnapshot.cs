@@ -17,7 +17,7 @@ namespace FootballTransfer.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -139,6 +139,12 @@ namespace FootballTransfer.Api.Migrations
                     b.Property<string>("FromClub")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsLoan")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLoanFee")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PlayerName")
                         .HasColumnType("text");
 
@@ -196,8 +202,17 @@ namespace FootballTransfer.Api.Migrations
                     b.Property<string>("ExtractedPlayer")
                         .HasColumnType("text");
 
+                    b.Property<string>("FeeCurrency")
+                        .HasColumnType("text");
+
                     b.Property<string>("FromClub")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsLoan")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLoanFee")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsProcessed")
                         .HasColumnType("boolean");

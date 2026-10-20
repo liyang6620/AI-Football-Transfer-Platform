@@ -277,6 +277,17 @@
     font-weight: 950;
 }
 
+.transfer-type-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.transfer-badge-loan {
+    background: #e0f2fe;
+    color: #075985;
+}
+
 .transfer-badge-official {
     background: #dcfce7;
     color: #166534;

@@ -109,6 +109,9 @@ public class NewsController : ControllerBase
                 n.ToClub,
                 n.TransferType,
                 n.EstimatedFee,
+                n.FeeCurrency,
+                n.IsLoan,
+                n.IsLoanFee,
                 n.Confidence
             })
             .ToList();
@@ -137,6 +140,9 @@ public class NewsController : ControllerBase
                 n.ToClub,
                 n.TransferType,
                 n.EstimatedFee,
+                n.FeeCurrency,
+                n.IsLoan,
+                n.IsLoanFee,
                 n.Confidence
             })
             .ToList();
@@ -178,6 +184,9 @@ public class NewsController : ControllerBase
                 n.ToClub,
                 n.TransferType,
                 n.EstimatedFee,
+                n.FeeCurrency,
+                n.IsLoan,
+                n.IsLoanFee,
                 n.Confidence
             })
             .ToList();

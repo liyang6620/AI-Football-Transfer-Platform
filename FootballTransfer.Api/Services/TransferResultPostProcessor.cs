@@ -108,10 +108,20 @@ public static class TransferResultPostProcessor
         {
             transfer.EstimatedFee = null;
             transfer.FeeCurrency = null;
+            transfer.IsLoan = false;
+            transfer.IsLoanFee = false;
         }
         else if (transfer.TransferType == "Free Transfer")
         {
             transfer.EstimatedFee = 0;
+            transfer.FeeCurrency = null;
+            transfer.IsLoan = false;
+            transfer.IsLoanFee = false;
+        }
+
+        if (transfer.IsLoan && !transfer.IsLoanFee)
+        {
+            transfer.EstimatedFee = null;
             transfer.FeeCurrency = null;
         }
 
@@ -127,6 +137,11 @@ public static class TransferResultPostProcessor
 
             transfer.FeeCurrency = null;
         }
+
+        transfer.IsLoanFee = transfer.IsLoan
+            && transfer.EstimatedFee is > 0
+            && IsValidCurrency(transfer.FeeCurrency)
+            && transfer.IsLoanFee;
     }
 
     public static void EnforceInvariants(TransferNews news)
@@ -136,15 +151,43 @@ public static class TransferResultPostProcessor
         if (news.TransferType == "Contract")
         {
             news.EstimatedFee = null;
+            news.FeeCurrency = null;
+            news.IsLoan = false;
+            news.IsLoanFee = false;
         }
         else if (news.TransferType == "Free Transfer")
         {
             news.EstimatedFee = 0;
+            news.FeeCurrency = null;
+            news.IsLoan = false;
+            news.IsLoanFee = false;
         }
         else if (news.EstimatedFee is <= 0 or > MaxPlausibleFeeMillions)
         {
             news.EstimatedFee = null;
+            news.FeeCurrency = null;
         }
+
+        if (news.IsLoan && !news.IsLoanFee)
+        {
+            news.EstimatedFee = null;
+            news.FeeCurrency = null;
+        }
+
+        if (news.EstimatedFee is null || !IsValidCurrency(news.FeeCurrency))
+        {
+            if (news.TransferType != "Free Transfer")
+            {
+                news.EstimatedFee = null;
+            }
+
+            news.FeeCurrency = null;
+        }
+
+        news.IsLoanFee = news.IsLoan
+            && news.EstimatedFee is > 0
+            && IsValidCurrency(news.FeeCurrency)
+            && news.IsLoanFee;
     }
 
     private static PostProcessResult Finish(OpenAiTransferResult result, List<string> adjustments)
@@ -189,12 +232,14 @@ public static class TransferResultPostProcessor
                 adjustments.Add("Cleared the fee from a contract event.");
             }
 
+            result.IsLoan = false;
             ClearFee(result);
             return;
         }
 
         if (result.TransferType == "Free Transfer")
         {
+            result.IsLoan = false;
             result.EstimatedFee = 0;
             result.FeeCurrency = null;
             return;

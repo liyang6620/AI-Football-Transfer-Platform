@@ -193,6 +193,8 @@ public sealed class TransfersController : ControllerBase
             transfer.TransferType,
             transfer.EstimatedFee,
             transfer.FeeCurrency,
+            transfer.IsLoan,
+            transfer.IsLoanFee,
             transfer.Confidence,
             transfer.PublishedAt,
             transfer.CreatedAt,

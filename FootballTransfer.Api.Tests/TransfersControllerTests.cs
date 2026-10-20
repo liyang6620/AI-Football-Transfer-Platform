@@ -42,6 +42,8 @@ public sealed class TransfersControllerTests
 
         Assert.Single(items);
         Assert.Equal("Completed Transfer", items[0].GetProperty("transferType").GetString());
+        Assert.True(items[0].GetProperty("isLoan").GetBoolean());
+        Assert.False(items[0].GetProperty("isLoanFee").GetBoolean());
     }
 
     [Fact]
@@ -117,6 +119,7 @@ public sealed class TransfersControllerTests
         var officialSecondary = News("Second report", "The Guardian Football", "official-secondary");
         var rumourPrimary = News("Rumour report", "Google News Football Transfers", "rumour-primary");
         var official = Transfer("Player One", "Auckland FC", "Completed Transfer", officialPrimary, 0.94, 2);
+        official.IsLoan = true;
         official.Sources.Add(officialSecondary);
         var rumour = Transfer("Player Two", "Wellington Phoenix", "Rumour", rumourPrimary, 0.76, 1);
         context.Transfers.AddRange(official, rumour);

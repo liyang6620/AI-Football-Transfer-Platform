@@ -52,4 +52,15 @@ describe('Transfers', () => {
 
         await waitFor(() => expect(api.fetchTransfers).toHaveBeenLastCalledWith(expect.objectContaining({ category: 'rumours' })))
     })
+
+    it('labels a loan with no disclosed loan fee', async () => {
+        api.fetchTransfers.mockResolvedValue({
+            ...response,
+            items: [{ ...response.items[0], isLoan: true }]
+        })
+
+        render(<MemoryRouter initialEntries={['/transfers?cat=official']}><Transfers /></MemoryRouter>)
+
+        expect((await screen.findAllByText('Loan')).length).toBeGreaterThanOrEqual(2)
+    })
 })

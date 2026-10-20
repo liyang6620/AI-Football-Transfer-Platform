@@ -81,6 +81,9 @@ public class AiAnalysisService
             news.ToClub = null;
             news.TransferType = null;
             news.EstimatedFee = null;
+            news.FeeCurrency = null;
+            news.IsLoan = false;
+            news.IsLoanFee = false;
             news.Confidence = null;
         }
 
@@ -202,7 +205,11 @@ public class AiAnalysisService
         news.ToClub = ClubNameNormalizer.Normalize(aiResult.ToClub);
         news.TransferType = aiResult.TransferType;
         news.EstimatedFee = aiResult.EstimatedFee;
+        news.FeeCurrency = aiResult.FeeCurrency;
+        news.IsLoan = aiResult.IsLoan;
+        news.IsLoanFee = aiResult.IsLoan && aiResult.EstimatedFee is > 0;
         news.Confidence = aiResult.Confidence;
+        TransferResultPostProcessor.EnforceInvariants(news);
 
         if (string.IsNullOrWhiteSpace(news.ToClub)
             && !string.IsNullOrWhiteSpace(news.ExtractedClub)
@@ -281,6 +288,8 @@ public class AiAnalysisService
             TransferType = news.TransferType,
             EstimatedFee = news.TransferType == "Free Transfer" ? 0 : news.EstimatedFee,
             FeeCurrency = aiResult.FeeCurrency,
+            IsLoan = aiResult.IsLoan,
+            IsLoanFee = aiResult.IsLoan && news.EstimatedFee is > 0,
             Confidence = news.Confidence,
             EventKey = eventKey,
             TransferNewsId = news.Id,
@@ -316,6 +325,9 @@ public class AiAnalysisService
         news.ToClub = null;
         news.TransferType = "Unknown";
         news.EstimatedFee = null;
+        news.FeeCurrency = null;
+        news.IsLoan = false;
+        news.IsLoanFee = false;
         news.Confidence = 0;
         news.IsProcessed = true;
     }
@@ -330,6 +342,9 @@ public class AiAnalysisService
         news.ToClub = null;
         news.TransferType = "Processing Failed";
         news.EstimatedFee = null;
+        news.FeeCurrency = null;
+        news.IsLoan = false;
+        news.IsLoanFee = false;
         news.Confidence = 0;
         // Keep transient failures pending so the next scheduled run can retry them.
         news.IsProcessed = false;

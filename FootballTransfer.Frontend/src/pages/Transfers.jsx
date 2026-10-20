@@ -59,9 +59,9 @@ export default function Transfers() {
         }
     }, [category, isGlobalSearch, page, reloadKey, search, sortBy])
 
-    function formatFee(fee, currency) {
+    function formatFee(fee, currency, isLoan) {
         if (fee === 0) return 'Free'
-        if (!fee) return 'Undisclosed'
+        if (fee === null || fee === undefined) return isLoan ? 'Loan' : 'Undisclosed'
         const cur = (currency || '').toUpperCase()
         if (cur === 'GBP' || cur === '£') return `£${fee}m`
         if (cur === 'EUR' || cur === '€') return `€${fee}m`
@@ -160,8 +160,11 @@ export default function Transfers() {
                             <Link to={`/transfer/${id}`} key={id} className="transfer-row">
                                 <strong>{player}<small className="source-count">{item.sourceCount || 1} source{item.sourceCount === 1 ? '' : 's'}</small></strong>
                                 <span className="transfer-route">{from} <b>→</b> {to}</span>
-                                <span className={`transfer-badge ${badge.css}`}>{badge.label}</span>
-                                <span className="transfer-fee">{formatFee(item.estimatedFee, item.feeCurrency)}</span>
+                                <span className="transfer-type-cell">
+                                    <span className={`transfer-badge ${badge.css}`}>{badge.label}</span>
+                                    {item.isLoan && <span className="transfer-badge transfer-badge-loan">Loan</span>}
+                                </span>
+                                <span className="transfer-fee">{formatFee(item.estimatedFee, item.feeCurrency, item.isLoan)}</span>
                                 <span className="transfer-confidence"><b>{confidence}%</b><i><em style={{ width: `${confidence}%` }} /></i></span>
                                 <span className="transfer-date">{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : '—'}</span>
                             </Link>

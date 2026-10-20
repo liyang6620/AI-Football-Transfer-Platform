@@ -44,4 +44,28 @@ describe('Transfer detail', () => {
     expect(screen.getAllByText('Undisclosed').length).toBeGreaterThan(0)
     expect(api.fetchTransfers).toHaveBeenCalledWith({ search: 'Example Player', pageSize: 10 })
   })
+
+  it('shows Loan instead of Undisclosed when a loan has no fee', async () => {
+    api.fetchTransfer.mockResolvedValue({
+      id: 8,
+      playerName: 'Loan Player',
+      fromClub: 'Auckland FC',
+      toClub: 'Wellington Phoenix',
+      transferType: 'Completed Transfer',
+      isLoan: true,
+      confidence: 0.9,
+      estimatedFee: null,
+      publishedAt: '2026-10-12T00:00:00Z',
+      sources: []
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/transfer/8']}>
+        <Routes><Route path="/transfer/:id" element={<TransferDetail />} /></Routes>
+      </MemoryRouter>
+    )
+
+    expect((await screen.findAllByText('Loan')).length).toBeGreaterThanOrEqual(2)
+    expect(screen.queryByText('Undisclosed')).not.toBeInTheDocument()
+  })
 })

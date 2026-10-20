@@ -118,6 +118,23 @@ public sealed class TransferMergerTests
         Assert.Equal("GBP", existing.FeeCurrency);
     }
 
+    [Fact]
+    public void Merge_preserves_loan_and_explicit_loan_fee_flags()
+    {
+        var existing = CreateTransfer("Rumour", 0.7);
+        var incoming = CreateNews("Completed Transfer", 0.9);
+        incoming.EstimatedFee = 2m;
+        var result = CreateResult(incoming);
+        result.IsLoan = true;
+
+        TransferMerger.Merge(existing, incoming, result);
+
+        Assert.True(existing.IsLoan);
+        Assert.True(existing.IsLoanFee);
+        Assert.Equal(2m, existing.EstimatedFee);
+        Assert.Equal("GBP", existing.FeeCurrency);
+    }
+
     private static Transfer CreateTransfer(string transferType, double confidence) => new()
     {
         PlayerName = "Alex Hart",

@@ -32,6 +32,12 @@ public class TransferNews
 
     public decimal? EstimatedFee { get; set; }
 
+    public string? FeeCurrency { get; set; }
+
+    public bool IsLoan { get; set; }
+
+    public bool IsLoanFee { get; set; }
+
     public double? Confidence { get; set; }
 
     public int? TransferId { get; set; }

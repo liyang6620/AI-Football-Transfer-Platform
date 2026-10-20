@@ -16,6 +16,10 @@ public class Transfer
 
     public string? FeeCurrency { get; set; }
 
+    public bool IsLoan { get; set; }
+
+    public bool IsLoanFee { get; set; }
+
     public double? Confidence { get; set; }
 
     public string EventKey { get; set; } = string.Empty;

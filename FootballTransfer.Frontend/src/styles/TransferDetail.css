@@ -97,6 +97,11 @@
     color: #1e40af !important;
 }
 
+.detail-badge.loan {
+    background: #e0f2fe !important;
+    color: #075985 !important;
+}
+
 .detail-badge.neutral {
     background: #f1f5f9 !important;
     color: #475569 !important;

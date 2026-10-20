@@ -21,6 +21,8 @@ public static class TransferMerger
             incoming.TransferType,
             incoming.EstimatedFee,
             incomingResult.FeeCurrency,
+            incomingResult.IsLoan,
+            incomingResult.IsLoan && incoming.EstimatedFee is > 0,
             incoming.Confidence,
             incoming.Id,
             incoming.PublishedAt,
@@ -40,6 +42,8 @@ public static class TransferMerger
             duplicate.TransferType,
             duplicate.EstimatedFee,
             duplicate.FeeCurrency,
+            duplicate.IsLoan,
+            duplicate.IsLoanFee,
             duplicate.Confidence,
             duplicate.TransferNewsId,
             duplicate.PublishedAt,
@@ -54,6 +58,8 @@ public static class TransferMerger
         string? incomingType,
         decimal? incomingFee,
         string? incomingCurrency,
+        bool incomingIsLoan,
+        bool incomingIsLoanFee,
         double? incomingConfidence,
         int incomingPrimaryNewsId,
         DateTime incomingPublishedAt,
@@ -74,6 +80,8 @@ public static class TransferMerger
             incomingType,
             existingConfidence,
             newConfidence);
+        existing.IsLoan |= incomingIsLoan;
+        existing.IsLoanFee |= incomingIsLoanFee;
 
         if (incomingFee is not null
             && (existing.EstimatedFee is null || newConfidence > existingConfidence))
