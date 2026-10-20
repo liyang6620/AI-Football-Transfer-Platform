@@ -102,6 +102,7 @@ public class AiAnalysisService
         }
 
         var transfers = await _context.Transfers
+            .Include(t => t.TransferNews)
             .OrderByDescending(t => t.Confidence)
             .ThenByDescending(t => t.PublishedAt)
             .ToListAsync();
@@ -120,6 +121,7 @@ public class AiAnalysisService
             transfer.EventKey = eventKey;
             if (kept.TryGetValue(eventKey, out var existing))
             {
+                TransferMerger.Merge(existing, transfer);
                 await _context.TransferNews
                     .Where(news => news.TransferId == transfer.Id)
                     .ExecuteUpdateAsync(update => update.SetProperty(news => news.TransferId, existing.Id));
@@ -260,22 +262,14 @@ public class AiAnalysisService
 
         var eventKey = TransferEventKey.Create(news.ExtractedPlayer, news.ToClub, news.TransferType);
         var duplicate = _context.Transfers.Local.FirstOrDefault(t => t.EventKey == eventKey)
-            ?? await _context.Transfers.FirstOrDefaultAsync(t => t.EventKey == eventKey);
+            ?? await _context.Transfers
+                .Include(t => t.TransferNews)
+                .FirstOrDefaultAsync(t => t.EventKey == eventKey);
 
         if (duplicate != null)
         {
             news.Transfer = duplicate;
-            if ((news.Confidence ?? 0) > (duplicate.Confidence ?? 0))
-            {
-                duplicate.PlayerName = news.ExtractedPlayer?.Trim();
-                duplicate.FromClub = ClubNameNormalizer.Normalize(news.FromClub);
-                duplicate.ToClub = ClubNameNormalizer.Normalize(news.ToClub);
-                duplicate.EstimatedFee = news.EstimatedFee;
-                duplicate.FeeCurrency = aiResult.FeeCurrency;
-                duplicate.Confidence = news.Confidence;
-                duplicate.TransferNewsId = news.Id;
-                duplicate.PublishedAt = news.PublishedAt;
-            }
+            TransferMerger.Merge(duplicate, news, aiResult);
             return;
         }
 
@@ -290,11 +284,13 @@ public class AiAnalysisService
             Confidence = news.Confidence,
             EventKey = eventKey,
             TransferNewsId = news.Id,
+            TransferNews = news,
             Sources = [news],
             PublishedAt = news.PublishedAt,
             CreatedAt = DateTime.UtcNow
         };
 
+        TransferResultPostProcessor.EnforceInvariants(transfer);
         _context.Transfers.Add(transfer);
     }
 
