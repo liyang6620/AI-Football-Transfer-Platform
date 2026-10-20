@@ -67,6 +67,12 @@ public class AiAnalysisService
 
     public async Task<int> ReprocessAllAsync()
     {
+        await ResetForReprocessAsync();
+        return await ProcessAllAsync();
+    }
+
+    public async Task<int> ResetForReprocessAsync()
+    {
         // Transfers are derived from AI output. Rebuild them from scratch so that
         // records which are no longer valid are removed instead of lingering.
         var newsItems = await _context.TransferNews.ToListAsync();
@@ -90,7 +96,7 @@ public class AiAnalysisService
         await _context.SaveChangesAsync();
         _context.Transfers.RemoveRange(await _context.Transfers.ToListAsync());
         await _context.SaveChangesAsync();
-        return await ProcessAllAsync();
+        return newsItems.Count;
     }
 
     public async Task<(int Normalized, int DuplicatesRemoved)> NormalizeClubNamesAsync()

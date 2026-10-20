@@ -73,6 +73,18 @@ public class AiController : ControllerBase
         });
     }
 
+    [HttpPost("reset-for-reprocess")]
+    public async Task<IActionResult> ResetForReprocess()
+    {
+        var resetCount = await _aiAnalysisService.ResetForReprocessAsync();
+
+        return Ok(new
+        {
+            message = "Derived transfer data was reset. Process news in bounded batches to rebuild it.",
+            reset = resetCount
+        });
+    }
+
     [HttpPost("normalize-clubs")]
     public async Task<IActionResult> NormalizeClubs()
     {
