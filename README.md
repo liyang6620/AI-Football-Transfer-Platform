@@ -410,6 +410,27 @@ The scorer reports classification precision, recall and F1, overall and
 per-field accuracy, every mismatch, and the IDs of any false-positive fees.
 The real-model runner requires `OPENAI_API_KEY`; CI never invokes it.
 
+### Real-model benchmark
+
+The latest checked-in run used `gpt-4o-mini` on 21 October 2026. It evaluated
+all 42 labelled cases through the same relevance filter, structured extraction,
+evidence validator and post-processor used by the application.
+
+| Metric | Result |
+|---|---:|
+| Classification precision | 100.00% |
+| Classification recall | 80.00% |
+| Classification F1 | 88.89% |
+| Exact field accuracy | 95.92% |
+| False-positive fees | 0 |
+
+Per-field accuracy was 100.00% for player and loan detection, 97.62% for the
+destination club, 95.24% for transfer type, and 92.86% for the source club,
+fee and currency. The lower recall reflects a deliberately conservative
+publication boundary: uncertain reports are withheld instead of being promoted
+into public events. The candidate output and complete mismatch list are stored
+in `evaluation/results/` so the result is reproducible and auditable.
+
 Backend integration tests use PostgreSQL when `TEST_POSTGRES_CONNECTION` is
 set. CI provisions a temporary PostgreSQL 16 service and validates that every
 migration can be applied from an empty database.

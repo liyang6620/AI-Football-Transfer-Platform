@@ -1,0 +1,93 @@
+{
+  "cases": 42,
+  "classification": {
+    "precision": 1,
+    "recall": 0.8,
+    "f1": 0.888888888888889
+  },
+  "exactFieldAccuracy": 0.9591836734693877,
+  "fieldAccuracy": {
+    "player": 1,
+    "fromClub": 0.9285714285714286,
+    "toClub": 0.9761904761904762,
+    "transferType": 0.9523809523809523,
+    "estimatedFee": 0.9285714285714286,
+    "feeCurrency": 0.9285714285714286,
+    "isLoan": 1
+  },
+  "feeFalsePositives": [],
+  "mismatches": [
+    {
+      "id": "official-03",
+      "field": "fromClub",
+      "expected": "Braga",
+      "actual": null
+    },
+    {
+      "id": "official-04",
+      "field": "estimatedFee",
+      "expected": 22,
+      "actual": null
+    },
+    {
+      "id": "official-04",
+      "field": "feeCurrency",
+      "expected": "EUR",
+      "actual": null
+    },
+    {
+      "id": "official-05",
+      "field": "estimatedFee",
+      "expected": 8,
+      "actual": null
+    },
+    {
+      "id": "official-05",
+      "field": "feeCurrency",
+      "expected": "USD",
+      "actual": null
+    },
+    {
+      "id": "loan-01",
+      "field": "fromClub",
+      "expected": "Monaco",
+      "actual": "AS Monaco"
+    },
+    {
+      "id": "loan-01",
+      "field": "toClub",
+      "expected": "Leeds",
+      "actual": "Leeds United"
+    },
+    {
+      "id": "loan-01",
+      "field": "transferType",
+      "expected": "Completed Transfer",
+      "actual": "Rumour"
+    },
+    {
+      "id": "regress-loan-with-fee",
+      "field": "estimatedFee",
+      "expected": 2,
+      "actual": null
+    },
+    {
+      "id": "regress-loan-with-fee",
+      "field": "feeCurrency",
+      "expected": "GBP",
+      "actual": null
+    },
+    {
+      "id": "regress-wage-offer",
+      "field": "transferType",
+      "expected": "Rumour",
+      "actual": "Contract"
+    },
+    {
+      "id": "regress-free-transfer",
+      "field": "fromClub",
+      "expected": "Hull City",
+      "actual": null
+    }
+  ]
+}
