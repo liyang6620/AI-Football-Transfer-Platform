@@ -18,5 +18,11 @@ public class OpenAiTransferResult
 
     public string? FeeCurrency { get; set; }
 
+    public string? FeeEvidence { get; set; }
+
+    public bool IsLoan { get; set; }
+
+    public string? ContractStatus { get; set; }
+
     public string? Summary { get; set; }
 }

@@ -9,11 +9,12 @@ public sealed class TransferResultPostProcessorTests
     public void Apply_clears_fee_for_contract_events()
     {
         var raw = CreateResult("Contract", 42m, "GBP");
+        raw.FeeEvidence = "Chelsea confirmed Alex Hart's contract worth £42m";
 
         var processed = TransferResultPostProcessor.Apply(
             raw,
             "Alex Hart signs a new Chelsea contract",
-            "Chelsea confirmed the new contract.");
+            "Chelsea confirmed Alex Hart's contract worth £42m.");
 
         Assert.Null(processed.Result.EstimatedFee);
         Assert.Null(processed.Result.FeeCurrency);
@@ -37,6 +38,7 @@ public sealed class TransferResultPostProcessorTests
     public void Apply_clears_fee_above_plausible_limit()
     {
         var raw = CreateResult("Completed Transfer", 300m, "GBP");
+        raw.FeeEvidence = "Stoke signed Alex Hart for £300m";
 
         var processed = TransferResultPostProcessor.Apply(
             raw,
@@ -92,6 +94,56 @@ public sealed class TransferResultPostProcessorTests
         Assert.Null(processed.Result.Player);
         Assert.Null(processed.Result.EstimatedFee);
         Assert.Null(processed.Result.FeeCurrency);
+    }
+
+    [Fact]
+    public void Apply_marks_contract_talks_as_unknown()
+    {
+        var raw = CreateResult("Contract", null, null);
+        raw.ContractStatus = "talks";
+
+        var processed = TransferResultPostProcessor.Apply(
+            raw,
+            "Alex Hart set for talks over new Chelsea deal",
+            "Chelsea plan to open contract talks with Alex Hart next month.");
+
+        Assert.Equal("Unknown", processed.Result.TransferType);
+        Assert.Equal(0, processed.Result.Confidence);
+        Assert.Equal("Contract talks are not a completed renewal.", processed.Result.Summary);
+    }
+
+    [Fact]
+    public void Apply_clears_loan_amount_without_explicit_loan_fee_evidence()
+    {
+        var raw = CreateResult("Completed Transfer", 2m, "GBP");
+        raw.IsLoan = true;
+        raw.FeeEvidence = "Everton paid £2m for Alex Hart";
+
+        var processed = TransferResultPostProcessor.Apply(
+            raw,
+            "Everton sign Alex Hart on loan",
+            "Everton paid £2m for Alex Hart in the season-long loan deal.");
+
+        Assert.True(processed.Result.IsLoan);
+        Assert.Null(processed.Result.EstimatedFee);
+        Assert.Null(processed.Result.FeeCurrency);
+    }
+
+    [Fact]
+    public void Apply_keeps_explicit_loan_fee()
+    {
+        var raw = CreateResult("Completed Transfer", 2m, "GBP");
+        raw.IsLoan = true;
+        raw.FeeEvidence = "Everton paid a £2m loan fee for Alex Hart";
+
+        var processed = TransferResultPostProcessor.Apply(
+            raw,
+            "Everton sign Alex Hart on loan",
+            "Everton paid a £2m loan fee for Alex Hart in the season-long deal.");
+
+        Assert.True(processed.Result.IsLoan);
+        Assert.Equal(2m, processed.Result.EstimatedFee);
+        Assert.Equal("GBP", processed.Result.FeeCurrency);
     }
 
     private static OpenAiTransferResult CreateResult(

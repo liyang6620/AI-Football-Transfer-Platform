@@ -63,9 +63,28 @@ public static class TransferResultPostProcessor
             }
         }
 
-        raw.EstimatedFee = TransferFeeNormalizer.NormalizeToMillions(
+        if (raw.TransferType == "Contract" && raw.ContractStatus == "talks")
+        {
+            MarkUnknown(raw, "Contract talks are not a completed renewal.");
+            adjustments.Add("Marked contract talks as Unknown.");
+            return Finish(raw, adjustments);
+        }
+
+        var validatedFee = FeeEvidenceValidator.Validate(
             raw.EstimatedFee,
-            $"{title} {content}");
+            raw.FeeCurrency,
+            raw.FeeEvidence,
+            raw.Player,
+            raw.FromClub,
+            raw.ToClub,
+            title,
+            content);
+        raw.EstimatedFee = validatedFee.Fee;
+        raw.FeeCurrency = validatedFee.Currency;
+        if (validatedFee.Reason is not null)
+        {
+            adjustments.Add($"Cleared fee: {validatedFee.Reason}.");
+        }
 
         if (ContainsUndisclosedFee($"{title} {content}"))
         {
@@ -147,6 +166,12 @@ public static class TransferResultPostProcessor
         result.ToClub = CleanField(result.ToClub);
         result.Summary = CleanSummary(result.Summary);
         result.FeeCurrency = NormalizeCurrency(result.FeeCurrency);
+        result.FeeEvidence = CleanField(result.FeeEvidence);
+        result.ContractStatus = NormalizeContractStatus(result.ContractStatus);
+        if (result.TransferType != "Contract")
+        {
+            result.ContractStatus = null;
+        }
     }
 
     private static void ApplyTypeRules(OpenAiTransferResult result, List<string> adjustments)
@@ -172,6 +197,17 @@ public static class TransferResultPostProcessor
         {
             result.EstimatedFee = 0;
             result.FeeCurrency = null;
+            return;
+        }
+
+        if (result.IsLoan && !HasExplicitLoanFee(result.FeeEvidence))
+        {
+            if (result.EstimatedFee is not null || result.FeeCurrency is not null)
+            {
+                adjustments.Add("Cleared a loan amount without explicit loan-fee evidence.");
+            }
+
+            ClearFee(result);
         }
     }
 
@@ -264,6 +300,19 @@ public static class TransferResultPostProcessor
         _ => null
     };
 
+    private static string? NormalizeContractStatus(string? status) => status?.Trim().ToLowerInvariant() switch
+    {
+        "signed" => "signed",
+        "agreed" => "agreed",
+        "talks" => "talks",
+        _ => null
+    };
+
+    private static bool HasExplicitLoanFee(string? evidence) =>
+        !string.IsNullOrWhiteSpace(evidence)
+        && (evidence.Contains("loan fee", StringComparison.OrdinalIgnoreCase)
+            || evidence.Contains("fee for the loan", StringComparison.OrdinalIgnoreCase));
+
     private static bool IsValidCurrency(string? currency) =>
         currency is "GBP" or "EUR" or "USD";
 
@@ -280,6 +329,9 @@ public static class TransferResultPostProcessor
         result.FromClub = null;
         result.ToClub = null;
         result.TransferType = "Unknown";
+        result.IsLoan = false;
+        result.ContractStatus = null;
+        result.FeeEvidence = null;
         ClearFee(result);
         result.Confidence = 0;
         result.Summary = summary;

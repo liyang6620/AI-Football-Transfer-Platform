@@ -3,6 +3,12 @@ using System.Text.RegularExpressions;
 
 namespace FootballTransfer.Api.Services;
 
+internal readonly record struct MoneyAmountMatch(
+    decimal Millions,
+    string Currency,
+    int Index,
+    int Length);
+
 public static partial class TransferFeeNormalizer
 {
     public static decimal? NormalizeToMillions(decimal? modelValue, string? sourceText)
@@ -42,7 +48,19 @@ public static partial class TransferFeeNormalizer
             return [];
         }
 
-        var amounts = new List<(decimal Millions, string Currency)>();
+        return FindAmountMatches(text)
+            .Select(match => (match.Millions, match.Currency))
+            .ToList();
+    }
+
+    internal static IReadOnlyList<MoneyAmountMatch> FindAmountMatches(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var amounts = new List<MoneyAmountMatch>();
         foreach (Match match in MoneyAmountRegex().Matches(text))
         {
             var currency = NormalizeCurrency(match.Groups["currency"].Value);
@@ -51,7 +69,7 @@ public static partial class TransferFeeNormalizer
                 continue;
             }
 
-            amounts.Add((millions, currency));
+            amounts.Add(new MoneyAmountMatch(millions, currency, match.Index, match.Length));
         }
 
         return amounts;
@@ -95,7 +113,7 @@ public static partial class TransferFeeNormalizer
     };
 
     [GeneratedRegex(
-        @"(?<currency>GBP|EUR|USD|\p{Sc})\s*(?<amount>\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(?<unit>billion|bn|million|mn|m|thousand|k)?\b",
+        @"(?<!\p{L})(?<currency>GBP|EUR|USD|\p{Sc})\s*(?<amount>\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(?<unit>billion|bn|million|mn|m|thousand|k)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MoneyAmountRegex();
 }

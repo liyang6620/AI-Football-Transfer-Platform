@@ -42,7 +42,7 @@ public class OpenAiAnalysisService
             content = content[..MaxArticleCharacters];
         }
 
-        var prompt =
+        var systemPrompt =
             "You are a football transfer data extraction system.\n\n" +
             "Your task is to understand the article and extract ONLY the MAIN CURRENT transfer event.\n" +
             "Return ONLY valid JSON. No markdown. No explanations.\n\n" +
@@ -56,7 +56,7 @@ public class OpenAiAnalysisService
             "2. If the main subject is not a current transfer event, return Unknown with null entities.\n" +
             "3. Identify player and clubs only when explicitly supported by the article.\n" +
             "4. If the buying club has not officially confirmed the move, use Rumour.\n" +
-            "5. Extract a fee only when it belongs to that same current event; otherwise use null.\n" +
+            "5. Extract a fee only when it belongs to that same current event and has verbatim evidence; otherwise use null.\n" +
             "6. Write a one-sentence summary grounded only in the supplied article.\n\n" +
 
             "CRITICAL DECISION RULE:\n" +
@@ -72,7 +72,10 @@ public class OpenAiAnalysisService
             "- Extract one main player only; ignore side stories and background players.\n" +
             "- Use null when a club direction is not explicitly stated; never guess.\n" +
             "- For a contract renewal, use the current club as toClub and leave fromClub null.\n" +
-            "- For a loan, use the parent club as fromClub and the loan destination as toClub when stated.\n\n" +
+            "- For a loan, use the parent club as fromClub and the loan destination as toClub when stated.\n" +
+            "- isLoan must be true when the current event is a loan, including a loan with an option to buy.\n" +
+            "- contractStatus is meaningful only for Contract: use signed for a signed renewal, agreed when agreed but not signed, and talks for talks, planned talks, negotiations, or an expected renewal. Otherwise use null.\n" +
+            "- If the title is a gossip roundup, extract only the main event named in the title.\n\n" +
 
             "ARTICLE UNDERSTANDING RULES:\n" +
             "- First decide what the article is mainly about.\n" +
@@ -108,16 +111,22 @@ public class OpenAiAnalysisService
             "  \"fromClub\": null,\n" +
             "  \"toClub\": null,\n" +
             "  \"transferType\": \"Unknown\",\n" +
+            "  \"isLoan\": false,\n" +
+            "  \"contractStatus\": null,\n" +
             "  \"estimatedFee\": null,\n" +
             "  \"feeCurrency\": null,\n" +
+            "  \"feeEvidence\": null,\n" +
             "  \"confidence\": 0.0,\n" +
             "  \"summary\": \"\"\n" +
             "}\n\n" +
 
             "FIELD RULES:\n" +
             "- transferType must be exactly one of: Rumour, Completed Transfer, Free Transfer, Contract, Unknown.\n" +
+            "- isLoan must be true only when the current event is a loan.\n" +
+            "- contractStatus must be exactly signed, agreed, talks, or null.\n" +
             "- estimatedFee must be a number in millions only, or null.\n" +
             "- feeCurrency must be exactly one of: GBP, EUR, USD, or null.\n" +
+            "- feeEvidence must be a verbatim article excerpt of at most 200 characters, or null.\n" +
             "- If estimatedFee is null, feeCurrency must be null.\n" +
             "- If transferType is Free Transfer, estimatedFee must be 0 and feeCurrency must be null.\n\n" +
 
@@ -144,11 +153,14 @@ public class OpenAiAnalysisService
             "- Even if journalists describe the transfer as almost certain, classify it as Rumour until the buying club officially announces the signing.\n" +
             "- Use Rumour for all transfer reports that have not yet received an official club announcement.\n" +
             "- Use Free Transfer only if the player has officially joined on a free transfer.\n" +
-            "- Use Contract only if the article is mainly about a contract renewal, contract extension, or a newly signed contract.\n" +
+            "- Use Contract only if the article is mainly about a contract renewal, contract extension, or a newly signed or agreed contract. Contract talks or negotiations must use contractStatus talks.\n" +
             "- Use Unknown if the article is not mainly about a current transfer story.\n\n" +
 
             "FEE RULES:\n" +
             "- Valid examples: £86m -> estimatedFee 86 and feeCurrency GBP; €100m -> estimatedFee 100 and feeCurrency EUR; $40m -> estimatedFee 40 and feeCurrency USD.\n" +
+            "- feeEvidence must be copied verbatim from the article, be no more than 200 characters, contain the amount, and name the current player or a relevant club.\n" +
+            "- If no such evidence exists, estimatedFee, feeCurrency, and feeEvidence must all be null.\n" +
+            "- Wages, annual salary, release clauses, buyout clauses, market value, valuations, historical fees, and fees for other players are never estimatedFee.\n" +
             "- If the article says 'undisclosed fee', 'fee undisclosed', 'unknown fee', 'fee not disclosed', or 'it is unknown what fee', return estimatedFee null and feeCurrency null.\n" +
             "- Free Transfer means estimatedFee 0 and feeCurrency null.\n" +
             "- For loans, only extract a fee if the article clearly states the CURRENT loan fee. If no current loan fee is stated, return estimatedFee null and feeCurrency null.\n" +
@@ -169,8 +181,11 @@ public class OpenAiAnalysisService
             "  \"fromClub\": null,\n" +
             "  \"toClub\": null,\n" +
             "  \"transferType\": \"Unknown\",\n" +
+            "  \"isLoan\": false,\n" +
+            "  \"contractStatus\": null,\n" +
             "  \"estimatedFee\": null,\n" +
             "  \"feeCurrency\": null,\n" +
+            "  \"feeEvidence\": null,\n" +
             "  \"confidence\": 0.0,\n" +
             "  \"summary\": \"The article is about Harry Kane's World Cup performance, not a current transfer.\"\n" +
             "}\n\n" +
@@ -184,8 +199,11 @@ public class OpenAiAnalysisService
             "  \"fromClub\": \"Newcastle United\",\n" +
             "  \"toClub\": \"Tottenham Hotspur\",\n" +
             "  \"transferType\": \"Rumour\",\n" +
+            "  \"isLoan\": false,\n" +
+            "  \"contractStatus\": null,\n" +
             "  \"estimatedFee\": 80,\n" +
             "  \"feeCurrency\": \"GBP\",\n" +
+            "  \"feeEvidence\": \"bid of about £80m for Tonali\",\n" +
             "  \"confidence\": 0.0,\n" +
             "  \"summary\": \"Newcastle United have rejected Tottenham Hotspur's bid of about £80m for Sandro Tonali.\"\n" +
             "}\n\n" +
@@ -200,8 +218,11 @@ public class OpenAiAnalysisService
             "  \"fromClub\": \"Manchester United\",\n" +
             "  \"toClub\": \"Another Club\",\n" +
             "  \"transferType\": \"Rumour\",\n" +
+            "  \"isLoan\": true,\n" +
+            "  \"contractStatus\": null,\n" +
             "  \"estimatedFee\": null,\n" +
             "  \"feeCurrency\": null,\n" +
+            "  \"feeEvidence\": null,\n" +
             "  \"confidence\": 0.0,\n" +
             "  \"summary\": \"The player is close to joining another club on loan, but no current loan fee is stated.\"\n" +
             "}\n\n" +
@@ -213,8 +234,9 @@ public class OpenAiAnalysisService
             "- Before returning JSON, check that estimatedFee belongs to the CURRENT transfer event, not an old transfer mentioned as background.\n" +
             "- Before deciding transferType, ask yourself: Has the buying club officially confirmed or announced this signing?\n" +
             "- If the answer is NO, transferType should almost always be Rumour rather than Completed Transfer.\n" +
-            "- Never classify a transfer as Completed Transfer solely because a fee has been agreed, a medical has been scheduled, or journalists believe the deal is close.\n\n" +
+            "- Never classify a transfer as Completed Transfer solely because a fee has been agreed, a medical has been scheduled, or journalists believe the deal is close.";
 
+        var userPrompt =
             "News title:\n" +
             title + "\n\n" +
             "News content:\n" +
@@ -222,7 +244,21 @@ public class OpenAiAnalysisService
             content +
             "\n</article>";
 
-        ChatCompletion completion = await _chatClient.CompleteChatAsync(prompt);
+        ChatMessage[] messages =
+        [
+            new SystemChatMessage(systemPrompt),
+            new UserChatMessage(userPrompt)
+        ];
+        var options = new ChatCompletionOptions
+        {
+            Temperature = 0,
+            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                jsonSchemaFormatName: "transfer_extraction",
+                jsonSchema: BinaryData.FromString(TransferExtractionSchema.Json),
+                jsonSchemaIsStrict: true)
+        };
+
+        ChatCompletion completion = await _chatClient.CompleteChatAsync(messages, options);
 
         var rawResponse = completion.Content.FirstOrDefault()?.Text;
         if (string.IsNullOrWhiteSpace(rawResponse))
@@ -231,24 +267,7 @@ public class OpenAiAnalysisService
             return CreateFallbackResult(title, content);
         }
 
-        var json = CleanJson(rawResponse);
-
-        OpenAiTransferResult result;
-
-        try
-        {
-            result = JsonSerializer.Deserialize<OpenAiTransferResult>(
-                json,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                }) ?? CreateFallbackResult(title, content);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "OpenAI returned invalid JSON for article {Title}.", title);
-            result = CreateFallbackResult(title, content);
-        }
+        var result = ParseModelJson(rawResponse);
 
         var processed = TransferResultPostProcessor.Apply(result, title, content);
         foreach (var adjustment in processed.Adjustments)
@@ -262,7 +281,29 @@ public class OpenAiAnalysisService
         return processed.Result;
     }
 
-    private OpenAiTransferResult CreateFallbackResult(string title, string content)
+    public static OpenAiTransferResult ParseModelJson(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return CreateFallbackResult(string.Empty, string.Empty);
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<OpenAiTransferResult>(
+                CleanJson(raw),
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? CreateFallbackResult(string.Empty, string.Empty);
+        }
+        catch (JsonException)
+        {
+            return CreateFallbackResult(string.Empty, string.Empty);
+        }
+    }
+
+    private static OpenAiTransferResult CreateFallbackResult(string title, string content)
     {
         var summarySource = !string.IsNullOrWhiteSpace(content) ? content : title;
 
@@ -284,7 +325,7 @@ public class OpenAiAnalysisService
         };
     }
 
-    private string CleanJson(string text)
+    private static string CleanJson(string text)
     {
         text = text.Trim();
 
