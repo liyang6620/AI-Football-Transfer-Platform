@@ -12,6 +12,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - name: Check frontend
         run: curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 https://ai-football-transfer-platform.pages.dev/ > /dev/null
       - name: Check API liveness
@@ -43,3 +44,8 @@ jobs:
       - name: Check baseline security headers
         run: |
           curl --fail --location --silent --show-error --max-time 70 --dump-header - --output /dev/null https://football-transfer-api.onrender.com/health | tr -d '\r' | grep --ignore-case --quiet '^x-content-type-options: nosniff$'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Audit transfer data invariants
+        run: node tools/audit-live-data.mjs
