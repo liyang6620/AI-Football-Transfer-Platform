@@ -248,23 +248,40 @@ For every article, the backend performs the following steps:
 1. Crawl RSS feed
 2. Retrieve full article content
 3. Clean HTML
-4. Build AI prompt
-5. Send request to OpenAI
-6. Receive structured JSON
-7. Validate extracted fields
+4. Put extraction rules in a system message and the untrusted article in a separate user message
+5. Send the request to `gpt-4o-mini` with a strict JSON Schema response format
+6. Validate verbatim fee evidence against the supplied article
+7. Enforce transfer, fee, currency, loan and confidence invariants
 8. Save results into PostgreSQL
 9. Attach the report to an existing canonical event or create a new event
 10. Return paginated event data and retained source provenance through the REST API
 
 The AI boundary is treated as untrusted input: empty or oversized articles are
-handled safely, JSON parsing failures fall back to an `Unknown` result, and
-transfer types, currencies, fees, confidence scores, and summary length are
-validated before persistence.
+handled safely, JSON parsing failures fall back to an `Unknown` result, and the
+model must satisfy a strict schema with no additional properties. A reported
+fee is accepted only when the model supplies a verbatim excerpt that occurs in
+the article, contains the amount, and identifies the current player or one of
+the relevant clubs. Wages, release clauses, valuations, historical fees and
+fees for other players are rejected by deterministic server-side code.
 
 Fees are stored in millions of their reported currency. A deterministic
 post-processing rule converts grouped base-currency values such as `GBP 500,000`
 to `0.5` before persistence, so model output cannot silently turn thousands into
 hundreds of millions.
+
+The post-processor guarantees these persistence invariants:
+
+- contracts never carry transfer fees;
+- free transfers store `0` with no currency;
+- a missing fee always has a missing currency;
+- positive fees require `GBP`, `EUR` or `USD` and cannot exceed 250 million;
+- loans carry no fee unless the evidence explicitly identifies a loan fee;
+- `Unknown` extractions never become public transfer events.
+
+Multiple reports for the same event are merged without discarding known data.
+Event type can advance from Rumour to Completed Transfer but cannot regress,
+null values never overwrite known clubs or fees, the highest-confidence source
+becomes primary, and publication time remains the newest across all sources.
 
 Confidence is evidence-based rather than type-based. The model scores current-
 event clarity, entity specificity, source language, and concrete deal details,
@@ -375,17 +392,23 @@ Validate the curated extraction benchmark without calling OpenAI:
 node tools/evaluate-extraction.mjs
 ```
 
-The default command validates 30 manually labelled positive and negative
-cases only. To score results produced separately, pass a JSON file containing
+The default command validates 42 manually labelled positive, negative, and
+production-regression cases only. To score results produced separately, pass a JSON file containing
 one candidate result per case:
 
 ```bash
-node tools/evaluate-extraction.mjs path/to/candidate-results.json
+dotnet run --project FootballTransfer.Eval -- \
+  evaluation/extraction-cases.json \
+  evaluation/results/candidate-results.json
+
+node tools/evaluate-extraction.mjs \
+  evaluation/results/candidate-results.json \
+  --out evaluation/results/score-YYYY-MM-DD.json
 ```
 
-The script reports classification precision, recall and F1 plus exact field
-accuracy. No benchmark score is claimed in this repository until real model
-outputs are supplied.
+The scorer reports classification precision, recall and F1, overall and
+per-field accuracy, every mismatch, and the IDs of any false-positive fees.
+The real-model runner requires `OPENAI_API_KEY`; CI never invokes it.
 
 Backend integration tests use PostgreSQL when `TEST_POSTGRES_CONNECTION` is
 set. CI provisions a temporary PostgreSQL 16 service and validates that every
@@ -532,10 +555,27 @@ The following operations are intentionally unavailable without the Render
 
 Send the key only from a trusted administration client:
 
-To rebuild all derived transfer records with the current AI rules, use the
-admin-only `POST /api/ai/reprocess-all` endpoint. It clears the derived
-`Transfers` rows, re-evaluates every news item, and recreates only records that
-still pass the current validation rules.
+For a small local dataset, the backwards-compatible admin-only
+`POST /api/ai/reprocess-all` endpoint resets and rebuilds all derived records in
+one request. Production rebuilds should use bounded batches to avoid request
+timeouts and make progress observable:
+
+```bash
+curl -X POST \
+  -H "X-Admin-Api-Key: $ADMIN_API_KEY" \
+  https://football-transfer-api.onrender.com/api/ai/reset-for-reprocess
+
+# Repeat until `processed` is 0.
+curl -X POST \
+  -H "X-Admin-Api-Key: $ADMIN_API_KEY" \
+  https://football-transfer-api.onrender.com/api/ai/process-unprocessed/20
+
+node tools/audit-live-data.mjs
+```
+
+The reset deletes derived `Transfers` and clears extracted news fields before
+the batch rebuild. Run it during a quiet period because the public feed is
+temporarily incomplete until all batches finish.
 
 ```bash
 curl -X POST \
