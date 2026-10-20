@@ -199,17 +199,8 @@ public class AiAnalysisService
         news.FromClub = ClubNameNormalizer.Normalize(aiResult.FromClub);
         news.ToClub = ClubNameNormalizer.Normalize(aiResult.ToClub);
         news.TransferType = aiResult.TransferType;
-        news.EstimatedFee = TransferFeeNormalizer.NormalizeToMillions(
-            aiResult.EstimatedFee,
-            $"{news.Title} {contentForAi}");
-        aiResult.EstimatedFee = news.EstimatedFee;
+        news.EstimatedFee = aiResult.EstimatedFee;
         news.Confidence = aiResult.Confidence;
-
-        if (news.TransferType == "Free Transfer")
-        {
-            news.EstimatedFee = 0;
-            aiResult.FeeCurrency = null;
-        }
 
         if (string.IsNullOrWhiteSpace(news.ToClub)
             && !string.IsNullOrWhiteSpace(news.ExtractedClub)
@@ -288,10 +279,6 @@ public class AiAnalysisService
             return;
         }
 
-        var feeCurrency = news.TransferType == "Free Transfer"
-            ? null
-            : aiResult.FeeCurrency ?? GetFeeCurrencyFromText($"{news.Title} {news.Content} {news.AiSummary} {contentForAi}");
-
         var transfer = new Transfer
         {
             PlayerName = news.ExtractedPlayer,
@@ -299,7 +286,7 @@ public class AiAnalysisService
             ToClub = ClubNameNormalizer.Normalize(news.ToClub),
             TransferType = news.TransferType,
             EstimatedFee = news.TransferType == "Free Transfer" ? 0 : news.EstimatedFee,
-            FeeCurrency = feeCurrency,
+            FeeCurrency = aiResult.FeeCurrency,
             Confidence = news.Confidence,
             EventKey = eventKey,
             TransferNewsId = news.Id,
@@ -317,20 +304,6 @@ public class AiAnalysisService
             || transferType == "Completed Transfer"
             || transferType == "Free Transfer"
             || transferType == "Contract";
-    }
-
-    private static string? GetFeeCurrencyFromText(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        if (text.Contains('£')) return "GBP";
-        if (text.Contains('€')) return "EUR";
-        if (text.Contains('$')) return "USD";
-
-        return null;
     }
 
     private static void MarkAsNotTransfer(TransferNews news, string content)

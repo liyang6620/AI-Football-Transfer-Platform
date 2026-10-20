@@ -30,4 +30,26 @@ public sealed class TransferFeeNormalizerTests
 
         Assert.Equal(25, TransferFeeNormalizer.NormalizeToMillions(25, text));
     }
+
+    [Fact]
+    public void NormalizeToMillions_keeps_null_when_article_contains_an_amount()
+    {
+        Assert.Null(TransferFeeNormalizer.NormalizeToMillions(null, "Arsenal paid £60m for Alex Doe in 2023."));
+    }
+
+    [Fact]
+    public void FindAmounts_returns_each_amount_with_its_own_currency()
+    {
+        var amounts = TransferFeeNormalizer.FindAmounts("The deal is €40m plus £5m in add-ons.");
+
+        Assert.Equal([(40m, "EUR"), (5m, "GBP")], amounts);
+    }
+
+    [Fact]
+    public void FindAmounts_converts_grouped_base_currency_to_millions()
+    {
+        var amounts = TransferFeeNormalizer.FindAmounts("The club paid £500,000 for the player.");
+
+        Assert.Equal([(0.5m, "GBP")], amounts);
+    }
 }

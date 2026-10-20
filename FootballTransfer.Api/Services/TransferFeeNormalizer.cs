@@ -7,53 +7,17 @@ public static partial class TransferFeeNormalizer
 {
     public static decimal? NormalizeToMillions(decimal? modelValue, string? sourceText)
     {
+        if (modelValue is null)
+        {
+            return null;
+        }
+
         if (string.IsNullOrWhiteSpace(sourceText))
         {
             return modelValue;
         }
 
-        var candidates = new List<decimal>();
-
-        foreach (Match match in MoneyAmountRegex().Matches(sourceText))
-        {
-            var rawAmount = match.Groups["amount"].Value;
-            var normalizedAmount = rawAmount.Replace(",", string.Empty).Replace(" ", string.Empty);
-            if (!decimal.TryParse(normalizedAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
-            {
-                continue;
-            }
-
-            var unit = match.Groups["unit"].Value.ToLowerInvariant();
-            if (unit is "bn" or "billion")
-            {
-                candidates.Add(amount * 1000);
-                continue;
-            }
-
-            if (unit is "m" or "mn" or "million")
-            {
-                candidates.Add(amount);
-                continue;
-            }
-
-            if (unit is "k" or "thousand")
-            {
-                candidates.Add(amount / 1000);
-                continue;
-            }
-
-            // A grouped amount such as GBP 500,000 is expressed in base currency,
-            // while the application stores all fees in millions.
-            if (rawAmount.Contains(',') || rawAmount.Contains(' '))
-            {
-                candidates.Add(amount / 1_000_000);
-            }
-        }
-
-        if (modelValue is null)
-        {
-            return candidates.Count > 0 ? candidates[0] : null;
-        }
+        var candidates = FindAmounts(sourceText).Select(candidate => candidate.Millions).ToList();
 
         var exactMatch = candidates.FirstOrDefault(candidate => ApproximatelyEqual(candidate, modelValue.Value));
         if (exactMatch > 0)
@@ -71,14 +35,67 @@ public static partial class TransferFeeNormalizer
         return modelValue;
     }
 
-    private static bool ApproximatelyEqual(decimal left, decimal right)
+    public static IReadOnlyList<(decimal Millions, string Currency)> FindAmounts(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var amounts = new List<(decimal Millions, string Currency)>();
+        foreach (Match match in MoneyAmountRegex().Matches(text))
+        {
+            var currency = NormalizeCurrency(match.Groups["currency"].Value);
+            if (currency is null || !TryConvertToMillions(match, out var millions))
+            {
+                continue;
+            }
+
+            amounts.Add((millions, currency));
+        }
+
+        return amounts;
+    }
+
+    internal static bool ApproximatelyEqual(decimal left, decimal right)
     {
         var tolerance = Math.Max(0.001m, Math.Abs(right) * 0.001m);
         return Math.Abs(left - right) <= tolerance;
     }
 
+    private static bool TryConvertToMillions(Match match, out decimal millions)
+    {
+        millions = 0;
+        var rawAmount = match.Groups["amount"].Value;
+        var normalizedAmount = rawAmount.Replace(",", string.Empty).Replace(" ", string.Empty);
+        if (!decimal.TryParse(normalizedAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount))
+        {
+            return false;
+        }
+
+        var unit = match.Groups["unit"].Value.ToLowerInvariant();
+        millions = unit switch
+        {
+            "bn" or "billion" => amount * 1000,
+            "m" or "mn" or "million" => amount,
+            "k" or "thousand" => amount / 1000,
+            _ when rawAmount.Contains(',') || rawAmount.Contains(' ') => amount / 1_000_000,
+            _ => 0
+        };
+
+        return millions > 0;
+    }
+
+    private static string? NormalizeCurrency(string currency) => currency.ToUpperInvariant() switch
+    {
+        "£" or "GBP" => "GBP",
+        "€" or "EUR" => "EUR",
+        "$" or "USD" => "USD",
+        _ => null
+    };
+
     [GeneratedRegex(
-        @"(?:GBP|EUR|USD|\p{Sc})\s*(?<amount>\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(?<unit>billion|bn|million|mn|m|thousand|k)?\b",
+        @"(?<currency>GBP|EUR|USD|\p{Sc})\s*(?<amount>\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(?<unit>billion|bn|million|mn|m|thousand|k)?\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MoneyAmountRegex();
 }
