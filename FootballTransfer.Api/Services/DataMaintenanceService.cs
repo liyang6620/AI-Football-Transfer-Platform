@@ -37,22 +37,23 @@ public sealed class DataMaintenanceService
         job.Status = "Running";
         job.StartedAt ??= DateTime.UtcNow;
         job.LastError = null;
-
-        await _context.TransferNews
-            .Where(news => news.AiSummary ==
-                "Automated extraction was unavailable after three attempts; this report was withheld.")
-            .ExecuteUpdateAsync(update => update
-                .SetProperty(news => news.IsProcessed, false)
-                .SetProperty(news => news.AiSummary, (string?)null)
-                .SetProperty(news => news.TransferType, (string?)null),
-                cancellationToken);
-
         await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Starting data maintenance job {JobName}.", job.Name);
 
         try
         {
+            await _context.TransferNews
+                .Where(news => news.AiSummary ==
+                    "Automated extraction was unavailable after three attempts; this report was withheld.")
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(news => news.IsProcessed, false)
+                    .SetProperty(news => news.AiSummary, (string?)null)
+                    .SetProperty(news => news.TransferType, (string?)null),
+                    cancellationToken);
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Starting data maintenance job {JobName}.", job.Name);
+
             for (var batch = 1; batch <= MaxBatches; batch++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -60,6 +61,11 @@ public sealed class DataMaintenanceService
                 var result = await _aiAnalysisService.ProcessMaintenanceBatchAsync(
                     BatchSize,
                     cancellationToken);
+
+                // A failed extraction retry clears the shared context so the next
+                // attempt starts clean. Reacquire the job in case that detached it.
+                job = await _context.DataMaintenanceJobs
+                    .SingleAsync(item => item.Name == EvidenceRebuildJob, cancellationToken);
                 job.ItemsProcessed += result.Attempted;
 
                 var remaining = await _context.TransferNews
@@ -103,8 +109,13 @@ public sealed class DataMaintenanceService
         }
         catch (Exception exception)
         {
-            job.Status = "Failed";
-            job.LastError = exception.Message.Length > 500
+            // The extraction retry path may have cleared the change tracker,
+            // including the maintenance job loaded above.
+            _context.ChangeTracker.Clear();
+            var failedJob = await _context.DataMaintenanceJobs
+                .SingleAsync(item => item.Name == EvidenceRebuildJob, CancellationToken.None);
+            failedJob.Status = "Failed";
+            failedJob.LastError = exception.Message.Length > 500
                 ? exception.Message[..500]
                 : exception.Message;
             await _context.SaveChangesAsync(CancellationToken.None);

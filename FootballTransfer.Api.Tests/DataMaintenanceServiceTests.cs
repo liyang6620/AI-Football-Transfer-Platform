@@ -39,6 +39,29 @@ public sealed class DataMaintenanceServiceTests
         Assert.Equal(42, context.DataMaintenanceJobs.Single().ItemsProcessed);
     }
 
+    [Fact]
+    public async Task RunPendingAsync_persists_failed_status_when_processing_throws()
+    {
+        await using var context = CreateContext();
+        context.DataMaintenanceJobs.Add(new DataMaintenanceJob
+        {
+            Name = DataMaintenanceService.EvidenceRebuildJob,
+            Status = "Pending"
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.RunPendingAsync(CancellationToken.None));
+
+        context.ChangeTracker.Clear();
+        var job = await context.DataMaintenanceJobs.SingleAsync();
+        Assert.Equal("Failed", job.Status);
+        Assert.NotNull(job.StartedAt);
+        Assert.Contains("not supported", job.LastError, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static FootballTransferDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<FootballTransferDbContext>()
