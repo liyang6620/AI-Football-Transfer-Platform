@@ -11,41 +11,18 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    env:
+      SMOKE_MAX_ATTEMPTS: 6
+      SMOKE_REQUEST_TIMEOUT_MS: 70000
+      SMOKE_MAX_BACKOFF_MS: 60000
     steps:
       - uses: actions/checkout@v7
-      - name: Check frontend
-        run: curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 https://ai-football-transfer-platform.pages.dev/ > /dev/null
-      - name: Check API liveness
-        run: curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 https://football-transfer-api.onrender.com/health
-      - name: Check API readiness
-        run: curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 https://football-transfer-api.onrender.com/ready
-      - name: Check public transfer feed
-        run: |
-          curl --fail --location --silent --show-error --retry 3 --retry-all-errors --max-time 70 \
-            "https://football-transfer-api.onrender.com/api/transfers?page=1&pageSize=5" \
-            | jq -e '(.items | type == "array") and (.page == 1) and (.pageSize == 5) and (.totalCount >= 0) and (.totalPages >= 0)'
-      - name: Check source-health contract
-        run: |
-          curl --fail --location --silent --show-error --max-time 70 \
-            https://football-transfer-api.onrender.com/api/sources/status \
-            | jq -e '(.intervalHours >= 1) and (.sources | type == "array" and length == 3)'
-      - name: Check public OpenAPI document
-        run: |
-          curl --fail --location --silent --show-error --max-time 70 \
-            https://football-transfer-api.onrender.com/openapi/v1.json \
-            | jq -e '.paths["/api/Transfers"] != null or .paths["/api/transfers"] != null'
-      - name: Check administration boundary
-        run: test "$(curl --location --silent --output /dev/null --write-out '%{http_code}' --max-time 70 https://football-transfer-api.onrender.com/api/news)" = "401"
-      - name: Check transfer detail privacy
-        run: |
-          transfer_id=$(curl --fail --location --silent --show-error --max-time 70 "https://football-transfer-api.onrender.com/api/transfers?pageSize=1" | jq -r '.items[0].id')
-          test "$transfer_id" != "null"
-          curl --fail --location --silent --show-error --max-time 70 "https://football-transfer-api.onrender.com/api/transfers/${transfer_id}" | jq -e 'has("newsContent") | not'
-      - name: Check baseline security headers
-        run: |
-          curl --fail --location --silent --show-error --max-time 70 --dump-header - --output /dev/null https://football-transfer-api.onrender.com/health | tr -d '\r' | grep --ignore-case --quiet '^x-content-type-options: nosniff$'
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
+      - name: Test transient retry behavior
+        run: node --test tools/live-smoke.test.mjs
+      - name: Run live endpoint smoke checks
+        run: node tools/live-smoke.mjs
       - name: Audit transfer data invariants
         run: node tools/audit-live-data.mjs
